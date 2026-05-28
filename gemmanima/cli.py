@@ -140,6 +140,12 @@ def main(argv: list[str] | None = None) -> int:
     renderer_backends_parser = subparsers.add_parser("renderer-backends", help="Audit renderer backend readiness.")
     renderer_backends_parser.add_argument("--json", action="store_true")
 
+    gui_parser = subparsers.add_parser("gui-command", help="Print the local GUI server command.")
+    gui_parser.add_argument("--host", default="127.0.0.1")
+    gui_parser.add_argument("--port", type=int, default=8765)
+    gui_parser.add_argument("--base-dir", default="runs")
+    gui_parser.add_argument("--json", action="store_true")
+
     rebalance_parser = subparsers.add_parser("rebalance-targets", help="Create rebalanced target subsets from unfinished 4070 work.")
     rebalance_parser.add_argument("--completed-4070-shards", type=int, required=True)
     rebalance_parser.add_argument("--json", action="store_true")
@@ -162,6 +168,7 @@ def main(argv: list[str] | None = None) -> int:
         "real-render-command",
         "real-render-health",
         "renderer-backends",
+        "gui-command",
         "rebalance-targets",
         "-h",
         "--help",
@@ -282,6 +289,25 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
         else:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "gui-command":
+        command = (
+            "$env:CUDA_VISIBLE_DEVICES='0'; $env:GEMMA_EMBED_ON_GPU='1'; "
+            f"python -m gemmanima.server --host {args.host} --port {args.port} --base-dir {args.base_dir}"
+        )
+        payload = {
+            "command": command,
+            "url": f"http://{args.host}:{args.port}",
+            "gpu": "RTX 4070 Ti SUPER",
+            "cuda_visible_devices": "0",
+            "gemma_embed_on_gpu": "1",
+        }
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            print(command)
+            print(payload["url"])
         return 0
 
     if args.command == "rebalance-targets":

@@ -7,12 +7,16 @@ from pathlib import Path
 from typing import Any
 
 from gemmanima.api import handle_chat_payload, handle_health_payload
+from gemmanima.ui import GUI_HTML
 
 
 class GemmAnimaRequestHandler(BaseHTTPRequestHandler):
     base_dir = Path("runs")
 
     def do_GET(self) -> None:
+        if self.path in {"/", "/index.html"}:
+            self._send_html(200, GUI_HTML)
+            return
         if self.path == "/v1/health":
             self._send_json(200, handle_health_payload())
             return
@@ -42,6 +46,14 @@ class GemmAnimaRequestHandler(BaseHTTPRequestHandler):
         body = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_html(self, status: int, html: str) -> None:
+        body = html.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)

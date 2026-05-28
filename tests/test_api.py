@@ -20,9 +20,37 @@ def test_handle_chat_payload_generates_image_response(tmp_path) -> None:
     assert result["output_path"]
 
 
+def test_handle_chat_payload_accepts_generation_overrides(tmp_path) -> None:
+    result = handle_chat_payload(
+        {
+            "message": "draw a small moonlit garden",
+            "session_id": "api-test",
+            "steps": 8,
+            "size": 512,
+            "cfg": 4.5,
+            "seed": 123,
+        },
+        base_dir=tmp_path,
+    )
+
+    assert result["status"] == "completed"
+    assert result["output_path"]
+
+
+def test_handle_chat_payload_rejects_unknown_renderer(tmp_path) -> None:
+    result = handle_chat_payload(
+        {"message": "draw a small moonlit garden", "renderer": "missing"},
+        base_dir=tmp_path,
+    )
+
+    assert result["status"] == "failed"
+    assert "unknown renderer" in result["error"]
+
+
 def test_handle_health_payload_reports_models() -> None:
     result = handle_health_payload()
 
     assert result["status"] == "ok"
     assert "gemma_planner_adapter" in result["models"]
     assert result["hiddenstage_bridge"]["passed_mse_gate"] is True
+    assert "in_process" in result["renderers"]

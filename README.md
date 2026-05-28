@@ -41,6 +41,7 @@ python -m gemmanima.cli t5-tokenizer-smoke-command --json
 python -m gemmanima.cli renderer-backends --json
 python -m gemmanima.cli real-render-health --json
 python -m gemmanima.cli real-render-command --json
+python -m gemmanima.cli gui-command --json
 ```
 
 The current bridge pipeline is documented in [docs/training_pipeline.md](docs/training_pipeline.md).
@@ -94,3 +95,20 @@ Gemma hidden provider environment smoke:
 python -m gemmanima.cli gemma-hidden-smoke-command --json
 python -m gemmanima.cli t5-tokenizer-smoke-command --json
 ```
+
+## Local GUI
+
+The backend includes a small local operations console for health checks and
+chat-to-image smoke requests:
+
+```powershell
+python -m gemmanima.cli gui-command
+```
+
+Open the printed URL, usually `http://127.0.0.1:8765`. The GUI talks to:
+
+- `GET /v1/health`
+- `POST /v1/chat`
+
+The GUI defaults to dry-run rendering. Switch the renderer to `in-process` only
+when the RTX 4070 Ti SUPER is free and the Comfy/Anima dependencies are ready.
