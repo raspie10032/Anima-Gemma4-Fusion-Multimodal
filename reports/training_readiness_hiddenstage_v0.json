@@ -1,0 +1,103 @@
+{
+  "planner_ready": true,
+  "hiddenstage_bridge_dataset_ready": false,
+  "next_required_action": "extract_teacher_crossattn_targets",
+  "planner_artifacts": {
+    "adapter_model": {
+      "path": "D:\\Projects\\training\\out\\hiddenstage_multimodal_planner_anima_v2\\adapter_model.safetensors",
+      "exists": true,
+      "size_bytes": 96693360
+    },
+    "adapter_config": {
+      "path": "D:\\Projects\\training\\out\\hiddenstage_multimodal_planner_anima_v2\\adapter_config.json",
+      "exists": true,
+      "size_bytes": 12071
+    },
+    "vision_embedding": {
+      "path": "D:\\Projects\\training\\out\\hiddenstage_multimodal_planner_anima_v2\\embed_vision.pt",
+      "exists": true,
+      "size_bytes": 4720396
+    },
+    "eval_pass": {
+      "path": "D:\\Projects\\training\\out\\hiddenstage_multimodal_planner_anima_v2\\EVAL_PASS.json",
+      "exists": true,
+      "size_bytes": 126
+    },
+    "eval_checkpoints": {
+      "path": "D:\\Projects\\training\\out\\hiddenstage_multimodal_planner_anima_v2\\eval_checkpoints.jsonl",
+      "exists": true,
+      "size_bytes": 4362
+    }
+  },
+  "train_manifest": {
+    "path": "E:\\anima_gemma_swap\\dataset_manifests\\hiddenstage_multimodal_planner_anima_v2.jsonl",
+    "exists": true,
+    "rows": 193258,
+    "generate_rows": 193258,
+    "clarify_rows": 0,
+    "rows_with_teacher_prompt": 193258,
+    "rows_with_target_crossattn": 0,
+    "rows_with_image_embed": 193258,
+    "missing_image_embed": 0,
+    "rating_counts": {
+      "e": 139435,
+      "g": 12534,
+      "q": 21661,
+      "s": 19628
+    },
+    "bridge_ready_rows": 0,
+    "needs_teacher_target_extraction": true,
+    "example_ids_missing_target": [
+      7000000,
+      6000000,
+      9000000,
+      8079477,
+      10609487,
+      4000000,
+      999999,
+      8815431,
+      5288549,
+      9627053
+    ]
+  },
+  "eval_manifest": {
+    "path": "E:\\anima_gemma_swap\\dataset_manifests\\hiddenstage_multimodal_planner_anima_v2_test1k.jsonl",
+    "exists": true,
+    "rows": 1000,
+    "generate_rows": 1000,
+    "clarify_rows": 0,
+    "rows_with_teacher_prompt": 1000,
+    "rows_with_target_crossattn": 0,
+    "rows_with_image_embed": 1000,
+    "missing_image_embed": 0,
+    "rating_counts": {
+      "g": 1000
+    },
+    "bridge_ready_rows": 0,
+    "needs_teacher_target_extraction": true,
+    "example_ids_missing_target": [
+      7000000,
+      6000000,
+      9000000,
+      8079477,
+      10609487,
+      4000000,
+      999999,
+      8815431,
+      5288549,
+      9627053
+    ]
+  },
+  "training_targets": {
+    "already_trained": [
+      "gemma_multimodal_planner_lora"
+    ],
+    "needs_training_now": [],
+    "blocked_until_targets_exist": [
+      "hiddenstage_exit_bridge"
+    ],
+    "needs_code_or_extraction_first": [
+      "teacher_crossattn_target_extraction"
+    ]
+  }
+}

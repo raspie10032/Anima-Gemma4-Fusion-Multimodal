@@ -1,0 +1,14 @@
+gemma_planner:
+  adapter_model: D:\Projects\training\out\hiddenstage_multimodal_planner_anima_v2\adapter_model.safetensors
+  vision_embedding: D:\Projects\training\out\hiddenstage_multimodal_planner_anima_v2\embed_vision.pt
+  eval_loss: 1.0061092711985111
+  eval_threshold: 1.5
+
+anima:
+  diffusion_model: E:\ComfyUI_sage\ComfyUI\models\diffusion_models\anima-base-v1.0.safetensors
+  text_encoder: E:\ComfyUI_sage\ComfyUI\models\text_encoders\qwen_3_06b_base.safetensors
+  vae: E:\ComfyUI_sage\ComfyUI\models\vae\qwen_image_vae.safetensors
+  hiddenstage_bridge: E:\anima_gemma_swap\kv_proj_hiddenstage_planner_v2.pt
+
+hardware:
+  primary_gpu: RTX 4070 Ti SUPER

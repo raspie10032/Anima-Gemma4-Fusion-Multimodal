@@ -1,0 +1,13 @@
+profiles:
+  anima_fp16_final:
+    precision: fp16
+    width: 1024
+    height: 1024
+    steps: 28
+    cfg: 4.0
+  anima_int8_draft:
+    precision: int8
+    width: 768
+    height: 768
+    steps: 16
+    cfg: 3.5
