@@ -79,6 +79,11 @@ The v0.1.0 prototype is distributed as a source checkout. Model weights are not
 included in GitHub. Install the Python package first, then let the app download
 or locate model assets.
 
+`GemmAnima.bat` is the only user-facing Windows launcher. It provides small
+subcommands for GUI startup, health checks, model downloads, dry-run rendering,
+image tagging, and tests so first-run users do not need to choose between
+multiple executable files.
+
 ### 1. Requirements
 
 - Python 3.10 or newer
@@ -158,10 +163,11 @@ sources and the GemmAnima adapter bundle.
 
 ### 6. Run Health And Tests
 
-On Windows, the batch helpers are the easiest first check:
+On Windows, use the single launcher for first checks:
 
 ```bat
-RTD\scripts\health_check.bat
+GemmAnima.bat health
+GemmAnima.bat test
 ```
 
 The direct Python commands are:
@@ -178,10 +184,10 @@ external model/runtime dependencies are present.
 
 After installation and asset setup, launch the local GUI:
 
-Windows batch launcher:
+Windows launcher:
 
 ```bat
-RTD\scripts\run_gui.bat
+GemmAnima.bat
 ```
 
 Direct Python command:
@@ -198,10 +204,10 @@ http://127.0.0.1:8765
 
 Smoke-test a dry-run generation without invoking the real renderer:
 
-Windows batch launcher:
+Windows launcher:
 
 ```bat
-RTD\scripts\smoke_dry_run.bat "draw a bright forest"
+GemmAnima.bat dry-run "draw a bright forest"
 ```
 
 Direct Python command:

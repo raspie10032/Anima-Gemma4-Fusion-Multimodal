@@ -11,6 +11,10 @@ API calls. Network access is only for first-run model asset downloads.
 The local GUI includes a model-asset download panel. First-run users can start
 downloads there and watch an overall queue gauge plus a current-file byte gauge.
 
+Use `..\GemmAnima.bat` as the only Windows launcher. It intentionally collects
+GUI startup, health checks, downloads, dry-run smoke, tagging, and tests behind
+one executable-style entry point.
+
 The runtime model set is split into three named parts:
 
 ### Gemma Core
@@ -67,16 +71,10 @@ These profiles are prototype routing choices, not promoted production models.
 - `configs\models.yaml` - model path snapshot.
 - `configs\model_sources.json` - first-run download source snapshot.
 - `configs\renderer_profiles.yaml` - renderer profile snapshot.
-- `scripts\health_check.bat` - quick Windows preflight commands.
-- `scripts\run_gui.bat` - starts the local GUI backend on Windows.
-- `scripts\smoke_dry_run.bat` - dry-run generation smoke on Windows.
-- `scripts\tag_image.bat` - TIPO vision tagger helper on Windows.
-- `scripts\health_check.ps1` - PowerShell preflight commands.
-- `scripts\run_gui.ps1` - PowerShell GUI backend launcher.
-- `scripts\smoke_dry_run.ps1` - PowerShell dry-run generation smoke.
-- `scripts\smoke_external_script.ps1` - legacy fallback render smoke, not the
-  RTD default.
-- `scripts\tag_image.ps1` - PowerShell TIPO vision tagger helper.
+- `..\GemmAnima.bat` - single Windows launcher for GUI, health, downloads,
+  dry-run smoke, tagging, and tests.
+- `scripts\*.ps1` - developer helper scripts used by the launcher and legacy
+  smoke paths; not first-run user launchers.
 - `payloads\chat_general.json` - text chat request example.
 - `payloads\chat_image_generation.json` - chat-to-image request example.
 - `payloads\tag_image_template.json` - vision tag request template.
@@ -87,7 +85,7 @@ From the repo root:
 
 ```powershell
 python -m gemmanima.cli model-download-plan --json
-.\RTD\scripts\health_check.bat
+.\GemmAnima.bat health
 ```
 
 Expected result:
@@ -103,7 +101,7 @@ GitHub does not carry model weights. On a fresh checkout, download required
 assets before starting real rendering:
 
 ```powershell
-python -m gemmanima.cli ensure-model-assets --json
+.\GemmAnima.bat download
 ```
 
 Default model root:
@@ -131,7 +129,7 @@ models and adapter/checkpoint files.
 ## Start Local GUI
 
 ```powershell
-.\RTD\scripts\run_gui.bat
+.\GemmAnima.bat
 ```
 
 Open:
@@ -143,7 +141,7 @@ http://127.0.0.1:8765
 ## Dry-Run Smoke
 
 ```powershell
-.\RTD\scripts\smoke_dry_run.bat
+.\GemmAnima.bat dry-run "draw a bright forest anime illustration"
 ```
 
 This does not require real renderer assets.
@@ -160,7 +158,7 @@ RTX 4070 Ti SUPER is free and the paths in `asset_manifest.json` are valid.
 ## Tag One Image
 
 ```powershell
-.\RTD\scripts\tag_image.bat "D:\path\to\image.png"
+.\GemmAnima.bat tag "D:\path\to\image.png"
 ```
 
 The tagger should output canonical English Danbooru tags.

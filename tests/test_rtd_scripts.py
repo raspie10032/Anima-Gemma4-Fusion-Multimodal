@@ -1,20 +1,31 @@
 from pathlib import Path
 
 
-def test_windows_batch_launchers_are_available() -> None:
+def test_single_windows_batch_launcher_is_available() -> None:
+    path = Path("GemmAnima.bat")
+
+    assert path.exists(), "missing single user-facing launcher"
+    text = path.read_text(encoding="utf-8")
+    assert 'cd /d "%~dp0"' in text
+    assert "python -m gemmanima.cli gui-command" in text
+    assert "python -m gemmanima.cli ensure-model-assets --json" in text
+    assert "python -m gemmanima.cli run" in text
+    assert "python -m gemmanima.cli tag-image" in text
+
+
+def test_rtd_scripts_have_no_extra_windows_batch_launchers() -> None:
     scripts = Path("RTD") / "scripts"
 
-    for name in ("run_gui.bat", "health_check.bat", "smoke_dry_run.bat", "tag_image.bat"):
-        path = scripts / name
-        assert path.exists(), f"missing {path}"
-        text = path.read_text(encoding="utf-8")
-        assert 'cd /d "%~dp0\\..\\.."' in text
-        assert "python -m gemmanima.cli" in text
+    assert list(scripts.glob("*.bat")) == []
 
 
-def test_rtd_readme_prefers_batch_launchers() -> None:
-    text = Path("RTD/README.md").read_text(encoding="utf-8")
+def test_readmes_prefer_single_batch_launcher() -> None:
+    root_text = Path("README.md").read_text(encoding="utf-8")
+    rtd_text = Path("RTD/README.md").read_text(encoding="utf-8")
 
-    assert r".\RTD\scripts\run_gui.bat" in text
-    assert r".\RTD\scripts\health_check.bat" in text
-    assert r".\RTD\scripts\smoke_dry_run.bat" in text
+    for text in (root_text, rtd_text):
+        assert "GemmAnima.bat" in text
+        assert r"RTD\scripts\run_gui.bat" not in text
+        assert r"RTD\scripts\health_check.bat" not in text
+        assert r"RTD\scripts\smoke_dry_run.bat" not in text
+        assert r"RTD\scripts\tag_image.bat" not in text
