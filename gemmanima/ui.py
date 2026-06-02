@@ -838,6 +838,27 @@ GUI_HTML = r"""<!doctype html>
     function isLikelyGenerationRequest(message, payload) {
       if (payload.task === "generate" || payload.chat_mode === "image_generation_request") return true;
       const text = String(message || "").toLowerCase();
+      const metaQuestionWords = ["어떻게", "무엇", "구분", "품질", "설명", "규칙", "라우팅", "프리셋", "why", "how", "what"];
+      if (metaQuestionWords.some((word) => text.includes(word))) return false;
+      const generationWords = [
+        "이미지를 만들어줘",
+        "이미지 만들어줘",
+        "이미지를 생성해",
+        "이미지 생성",
+        "그림 그려",
+        "그림을 그려",
+        "그림 만들어",
+        "일러스트",
+        "draw",
+        "render",
+        "generate image",
+        "generate an image",
+        "create image",
+        "create an image",
+        "anime illustration"
+      ];
+      if (generationWords.some((word) => text.includes(word))) return true;
+      if (/(이미지|그림).*(만들|생성|그려|그리|구성|새로)/i.test(text)) return true;
       if (/(이미지\s*요청이\s*아닌|이미지\s*생성이\s*아닌|그림\s*요청이\s*아닌|not image|not an image)/i.test(text)) {
         return false;
       }
@@ -1030,7 +1051,7 @@ GUI_HTML = r"""<!doctype html>
       if (!forcedTask && shouldTagAttachedImage(message)) payload.task = "tag";
       const forcedChatMode = $("force_chat_mode").value;
       if (forcedChatMode) payload.chat_mode = forcedChatMode;
-      const pendingGeneration = isLikelyGenerationRequest(message, payload) ? renderPendingGeneration(payload) : null;
+      const pendingGeneration = renderPendingGeneration(payload);
       try {
         const res = await fetch("/v1/chat", {
           method: "POST",

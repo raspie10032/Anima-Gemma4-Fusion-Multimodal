@@ -92,12 +92,17 @@ def test_gui_html_contains_api_hooks() -> None:
     assert "runBrowserAutotest" in GUI_HTML
     assert "autotest-status" in GUI_HTML
     assert "renderPendingGeneration" in GUI_HTML
+    assert "const pendingGeneration = renderPendingGeneration(payload);" in GUI_HTML
+    assert "isLikelyGenerationRequest(message, payload) ? renderPendingGeneration(payload)" not in GUI_HTML
     assert "updatePendingGenerationStage" in GUI_HTML
     assert "generation-spinner" in GUI_HTML
     assert "generation-stage" in GUI_HTML
     assert "replacePendingGeneration" in GUI_HTML
+    assert "generationWords" in GUI_HTML
+    assert "metaQuestionWords" in GUI_HTML
     assert "이미지 요청이 아닌" in GUI_HTML
-    assert "어떻게" in GUI_HTML
+    assert "이미지 생성 요청을 어떻게 구분" in GUI_HTML
+    assert "이미지를 만들어줘" in GUI_HTML
     assert "not image" in GUI_HTML
 
 
