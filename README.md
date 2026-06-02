@@ -73,23 +73,34 @@ Use the CLI to inspect the exact download plan for your environment:
 python -m gemmanima.cli model-download-plan --json
 ```
 
-## Quick Start
+## Installation
 
-Requirements:
+The v0.1.0 prototype is distributed as a source checkout. Model weights are not
+included in GitHub. Install the Python package first, then let the app download
+or locate model assets.
+
+### 1. Requirements
 
 - Python 3.10 or newer
 - Windows or Linux with a CUDA-capable NVIDIA GPU for real local generation
 - `git`
 - Enough disk space for the base models and adapter bundle
+- A Python/CUDA environment capable of running the selected local renderer
 
-Clone the repository:
+The source package itself is intentionally light. Real local chat, vision
+tagging, and image generation require the runtime libraries and model assets
+reported by the health check.
+
+### 2. Clone
 
 ```powershell
 git clone https://github.com/raspie10032/Anima-Gemma4-Fusion-Multimodal.git
 cd Anima-Gemma4-Fusion-Multimodal
 ```
 
-Create an environment:
+### 3. Create A Python Environment
+
+Windows PowerShell:
 
 ```powershell
 python -m venv .venv
@@ -99,14 +110,65 @@ python -m pip install -e .
 python -m pip install pytest
 ```
 
-Inspect and download required model assets:
+Linux/macOS shell:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+python -m pip install pytest
+```
+
+### 4. Choose A Model Asset Folder
+
+By default, first-run model assets are stored under the user's local app data
+folder. To choose another location, set `GEMMANIMA_MODEL_ROOT` before running
+the download commands or GUI.
+
+Windows PowerShell:
+
+```powershell
+$env:GEMMANIMA_MODEL_ROOT = "$HOME\gemmanima-models"
+```
+
+Linux/macOS shell:
+
+```bash
+export GEMMANIMA_MODEL_ROOT="$HOME/gemmanima-models"
+```
+
+### 5. Inspect And Download Assets
+
+Print the configured asset plan:
 
 ```powershell
 python -m gemmanima.cli model-download-plan --json
+```
+
+Download or verify required assets:
+
+```powershell
 python -m gemmanima.cli ensure-model-assets --json
 ```
 
-Launch the GUI:
+The GUI also exposes model download progress in its settings panel. GitHub does
+not mirror the base model weights; the downloader uses configured upstream
+sources and the GemmAnima adapter bundle.
+
+### 6. Run Health And Tests
+
+```powershell
+python -m gemmanima.cli model-download-plan --json
+python -m pytest -q
+```
+
+For a fresh machine, expect real renderer health to remain blocked until all
+external model/runtime dependencies are present.
+
+## Quick Start
+
+After installation and asset setup, launch the local GUI:
 
 ```powershell
 python -m gemmanima.cli gui-command
@@ -118,11 +180,10 @@ Open the printed URL, usually:
 http://127.0.0.1:8765
 ```
 
-If you want to store model assets somewhere other than the default app data
-location, set:
+Smoke-test a dry-run generation without invoking the real renderer:
 
 ```powershell
-$env:GEMMANIMA_MODEL_ROOT = "$HOME\gemmanima-models"
+python -m gemmanima.cli run "draw a bright forest" --renderer dry-run --json
 ```
 
 ## Running Tests
