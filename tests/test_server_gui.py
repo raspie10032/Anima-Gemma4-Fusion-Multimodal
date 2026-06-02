@@ -57,6 +57,9 @@ def test_gui_html_contains_api_hooks() -> None:
     assert 'value="tag"' in GUI_HTML
     assert 'id="image_path"' in GUI_HTML
     assert "image_path:" in GUI_HTML
+    assert "reference_image_path" in GUI_HTML
+    assert "payload.reference_image_path = attachedImagePath" in GUI_HTML
+    assert "setAttachment(data.path, file.name)" in GUI_HTML
     assert 'id="generation_preset"' in GUI_HTML
     assert 'id="resolution_preset"' in GUI_HTML
     assert 'value="square_1024"' in GUI_HTML
@@ -83,6 +86,9 @@ def test_gui_html_contains_api_hooks() -> None:
     assert "updateDownloadGauge" in GUI_HTML
     assert "startModelDownload" in GUI_HTML
     assert "window.GemmAnimaTest" in GUI_HTML
+    assert "attachImage(path" in GUI_HTML
+    assert "clearAttachment()" in GUI_HTML
+    assert "attachedImageName" in GUI_HTML
     assert "runBrowserAutotest" in GUI_HTML
     assert "autotest-status" in GUI_HTML
     assert "renderPendingGeneration" in GUI_HTML

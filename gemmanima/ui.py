@@ -1026,6 +1026,7 @@ GUI_HTML = r"""<!doctype html>
         seed: $("seed").value,
         unet_dtype: $("dtype").value
       };
+      if (attachedImagePath) payload.reference_image_path = attachedImagePath;
       if (!forcedTask && shouldTagAttachedImage(message)) payload.task = "tag";
       const forcedChatMode = $("force_chat_mode").value;
       if (forcedChatMode) payload.chat_mode = forcedChatMode;
@@ -1136,6 +1137,14 @@ GUI_HTML = r"""<!doctype html>
         await runRequest();
         return this.stats();
       },
+      attachImage(path, name = "attached-image.png") {
+        setAttachment(String(path || ""), String(name || path || ""));
+        return this.stats();
+      },
+      clearAttachment() {
+        setAttachment("", "");
+        return this.stats();
+      },
       stats() {
         const rows = Array.from(document.querySelectorAll(".message-row"));
         return {
@@ -1143,6 +1152,8 @@ GUI_HTML = r"""<!doctype html>
           userRows: document.querySelectorAll(".message-row.user").length,
           assistantRows: document.querySelectorAll(".message-row.assistant").length,
           systemRows: document.querySelectorAll(".message-row.system").length,
+          attachedImagePath,
+          attachedImageName,
           images: Array.from(document.querySelectorAll(".generated-image")).map((img) => img.src),
           links: Array.from(document.querySelectorAll(".artifact-link")).map((link) => link.href),
           lastTexts: rows.slice(-6).map((row) => row.textContent.trim()),

@@ -249,6 +249,7 @@ class GemmAnimaConductor:
                 status=JobStatus.FAILED,
                 message=message,
                 prompt=plan.prompt,
+                plan=plan,
                 manifest_path=manifest_path,
                 progress=tuple(progress),
                 job_id=manifest.job_id,
@@ -292,6 +293,7 @@ class GemmAnimaConductor:
                 status=JobStatus.ASK_CLARIFY,
                 message=question,
                 prompt=plan.prompt,
+                plan=plan,
                 manifest_path=manifest_path,
                 progress=tuple(progress),
                 clarification_required=True,
@@ -300,6 +302,8 @@ class GemmAnimaConductor:
             )
 
         progress.append("conflict:clear")
+        if plan.reference_image_path:
+            progress.append("attachment:reference")
         conditioning = self.hidden_exit.encode(capsule, plan, conflict_report=conflict_report)
         progress.append("hiddenstage:conditioning")
         render_result = self.renderer.generate(plan, conditioning)
@@ -323,6 +327,7 @@ class GemmAnimaConductor:
             renderer={
                 "profile": plan.renderer_profile,
                 "dry_run": renderer_is_dry_run,
+                "attached_reference_image": plan.reference_image_path,
                 "hiddenstage_conditioning": conditioning.to_json_dict(),
             },
             conditioning_metrics={
@@ -346,6 +351,7 @@ class GemmAnimaConductor:
             status=JobStatus.COMPLETED,
             message=message,
             prompt=plan.prompt,
+            plan=plan,
             manifest_path=manifest_path,
             output_path=render_result.output_path,
             progress=tuple(progress),

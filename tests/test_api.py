@@ -660,6 +660,47 @@ def test_handle_chat_payload_rejects_unknown_renderer(tmp_path) -> None:
     assert "unknown renderer" in result["error"]
 
 
+def test_handle_generate_payload_preserves_attached_reference_image(tmp_path) -> None:
+    reference = tmp_path / "uploads" / "reference.png"
+    reference.parent.mkdir()
+    reference.write_bytes(b"fake png")
+
+    result = handle_chat_payload(
+        {
+            "task": "generate",
+            "message": "make a brighter variation of the attached image",
+            "renderer": "dry-run",
+            "image_path": str(reference),
+            "steps": 5,
+        },
+        base_dir=tmp_path,
+    )
+
+    assert result["status"] == "completed"
+    assert result["plan"]["reference_image_path"] == str(reference)
+    assert "attachment:reference" in result["progress"]
+
+
+def test_explicit_generate_payload_does_not_fall_back_to_chat_for_korean_attachment_request(tmp_path) -> None:
+    reference = tmp_path / "uploads" / "reference.png"
+    reference.parent.mkdir()
+    reference.write_bytes(b"fake png")
+
+    result = handle_chat_payload(
+        {
+            "task": "generate",
+            "message": "이 첨부 이미지를 참고해서 더 밝은 숲 장면으로 새로 구성해줘",
+            "renderer": "dry-run",
+            "image_path": str(reference),
+        },
+        base_dir=tmp_path,
+    )
+
+    assert result["mode"] == "generate_image"
+    assert result["status"] == "completed"
+    assert result["plan"]["reference_image_path"] == str(reference)
+
+
 def test_build_renderer_accepts_local_worker(tmp_path) -> None:
     from gemmanima.api import build_renderer
     from gemmanima.modules.local_worker_anima_renderer import LocalWorkerAnimaRendererAdapter

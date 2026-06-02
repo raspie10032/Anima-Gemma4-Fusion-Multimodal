@@ -43,6 +43,7 @@ class ContextCapsule:
 class GenerationPlan:
     prompt: str
     negative_prompt: str = ""
+    reference_image_path: str = ""
     width: int = 1024
     height: int = 1024
     steps: int = 28
@@ -58,6 +59,7 @@ class GenerationPlan:
         allowed = {
             "prompt",
             "negative_prompt",
+            "reference_image_path",
             "width",
             "height",
             "steps",
@@ -74,6 +76,7 @@ class GenerationPlan:
         plan = cls(
             prompt=str(data.get("prompt", "")),
             negative_prompt=str(data.get("negative_prompt", "")),
+            reference_image_path=str(data.get("reference_image_path") or ""),
             width=int(data.get("width", 1024)),
             height=int(data.get("height", 1024)),
             steps=int(data.get("steps", 28)),
@@ -91,6 +94,7 @@ class GenerationPlan:
         return {
             "prompt": self.prompt,
             "negative_prompt": self.negative_prompt,
+            "reference_image_path": self.reference_image_path,
             "width": self.width,
             "height": self.height,
             "steps": self.steps,
@@ -213,6 +217,7 @@ class EngineResponse:
     status: JobStatus
     message: str
     prompt: str | None = None
+    plan: GenerationPlan | None = None
     manifest_path: Path | None = None
     output_path: Path | None = None
     progress: tuple[str, ...] = ()

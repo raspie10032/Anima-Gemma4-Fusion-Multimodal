@@ -58,6 +58,7 @@ def response_to_dict(response) -> dict[str, Any]:
         "status": response.status.value,
         "message": response.message,
         "prompt": response.prompt,
+        "plan": response.plan.to_json_dict() if response.plan else None,
         "manifest_path": str(response.manifest_path) if response.manifest_path else None,
         "output_path": str(response.output_path) if response.output_path else None,
         "progress": list(response.progress),
@@ -108,6 +109,9 @@ def build_plan_overrides(payload: dict[str, Any]) -> dict[str, object]:
         overrides["renderer_profile"] = str(payload["renderer_profile"])
     if payload.get("lora_stack") is not None:
         overrides["lora_stack"] = tuple(str(item) for item in payload.get("lora_stack") or ())
+    reference_image_path = str(payload.get("reference_image_path") or payload.get("image_path") or "").strip()
+    if reference_image_path:
+        overrides["reference_image_path"] = reference_image_path
     return overrides
 
 
@@ -321,7 +325,7 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
         )
         if result.get("status") != "completed":
             if auto_route and auto_route.get("intent") == "generate_image" and chat_mode == "image_generation_request":
-                fallback = handle_direct_generation_payload(payload, message=message, base_dir=base_dir)
+                fallback = handle_direct_generation_payload(payload, message=message, base_dir=base_dir, force_plan=True)
                 fallback["auto_route"] = auto_route
                 fallback["progress"] = [*fallback.get("progress", ()), "contract:fallback"]
                 fallback["chat_mode"] = chat_mode
@@ -346,7 +350,7 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
                 )
             if contract.get("status") != "completed":
                 if auto_route and auto_route.get("intent") == "generate_image":
-                    fallback = handle_direct_generation_payload(payload, message=message, base_dir=base_dir)
+                    fallback = handle_direct_generation_payload(payload, message=message, base_dir=base_dir, force_plan=True)
                     fallback["auto_route"] = auto_route
                     fallback["progress"] = [*fallback.get("progress", ()), "contract:fallback"]
                     fallback["chat_mode"] = chat_mode
@@ -424,10 +428,17 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
             "auto_route": auto_route,
         }
 
-    return handle_direct_generation_payload(payload, message=message, base_dir=base_dir)
+    force_plan = task in {"generate", "generate_image", "image", "img"}
+    return handle_direct_generation_payload(payload, message=message, base_dir=base_dir, force_plan=force_plan)
 
 
-def handle_direct_generation_payload(payload: dict[str, Any], *, message: str, base_dir: str | Path) -> dict[str, Any]:
+def handle_direct_generation_payload(
+    payload: dict[str, Any],
+    *,
+    message: str,
+    base_dir: str | Path,
+    force_plan: bool = False,
+) -> dict[str, Any]:
     session_id = payload.get("session_id")
     base = Path(base_dir)
     config = build_config(payload)
@@ -448,7 +459,18 @@ def handle_direct_generation_payload(payload: dict[str, Any], *, message: str, b
         content = str(item.get("content", "")).strip()
         if role and content:
             conductor.history.append(ChatTurn(role=role, content=content))
-    return response_to_dict(conductor.handle_user_message(message))
+    if not force_plan:
+        return response_to_dict(conductor.handle_user_message(message))
+    reference_image_path = str(payload.get("reference_image_path") or payload.get("image_path") or "").strip()
+    plan = apply_payload_generation_preset(
+        GenerationPlan(
+            prompt=message,
+            negative_prompt=str(payload.get("negative_prompt") or ""),
+            reference_image_path=reference_image_path,
+        ),
+        payload,
+    )
+    return response_to_dict(conductor.handle_generation_plan(message, plan))
 
 
 def classify_auto_intent(payload: dict[str, Any], *, message: str, language: str) -> dict[str, Any]:
