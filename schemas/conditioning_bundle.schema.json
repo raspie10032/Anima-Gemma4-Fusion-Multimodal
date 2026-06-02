@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gemmanima.local/schemas/conditioning_bundle.schema.json",
+  "title": "GEMMANIMA ConditioningBundle v0.1",
+  "type": "object",
+  "required": ["source", "shape", "protocol_version", "semantic_conditioning", "reference_conditioning", "style_conditioning", "mood_conditioning", "spatial_conditioning", "negative_conditioning", "lora_hints", "strength_weights", "conflict_state", "renderer_profile"],
+  "properties": {
+    "source": { "type": "string" },
+    "shape": {
+      "type": "array",
+      "prefixItems": [
+        { "const": 1 },
+        { "const": 512 },
+        { "const": 1024 }
+      ],
+      "items": false
+    },
+    "metadata": { "type": "object" },
+    "protocol_version": { "const": "0.1" },
+    "semantic_conditioning": { "type": "object" },
+    "reference_conditioning": { "type": "object" },
+    "style_conditioning": { "type": "object" },
+    "mood_conditioning": { "type": "object" },
+    "spatial_conditioning": { "type": "object" },
+    "negative_conditioning": { "type": "object" },
+    "lora_hints": { "type": "array", "items": { "type": "string" } },
+    "strength_weights": { "type": "object" },
+    "conflict_state": { "type": "object" },
+    "renderer_profile": { "type": "string" }
+  },
+  "additionalProperties": false
+}

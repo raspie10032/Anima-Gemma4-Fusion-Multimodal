@@ -14,3 +14,15 @@ def test_real_render_command_uses_trained_bridge_and_4070_ti_super(capsys) -> No
     assert payload["seed"] == 19375672098
     assert "--seed" in payload["argv"]
     assert payload["dependencies"]["ready"] is True
+
+
+def test_real_render_command_accepts_hiddenstage_bridge_override(tmp_path, capsys) -> None:
+    bridge = tmp_path / "kv_proj_text_delta_300k_from_epoch1_a0p35.pt"
+    bridge.write_bytes(b"checkpoint")
+
+    assert main(["real-render-command", "--hiddenstage-bridge", str(bridge), "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["adapter"] == str(bridge)
+    assert str(bridge) in payload["command"]
+    assert payload["dependencies"]["checks"]["hiddenstage_bridge"] is True

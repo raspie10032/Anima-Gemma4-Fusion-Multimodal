@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gemmanima.local/schemas/run_manifest.schema.json",
+  "title": "GEMMANIMA RunManifest v0.1",
+  "type": "object",
+  "required": ["job_id", "session_id", "mode", "status", "user_request", "protocol_version", "translator_version", "precision", "memory_policy", "conditioning_metrics", "lineage", "modules"],
+  "properties": {
+    "job_id": { "type": "string" },
+    "session_id": { "type": "string" },
+    "image_id": { "type": ["string", "null"] },
+    "mode": { "type": "string" },
+    "status": { "type": "string" },
+    "user_request": { "type": "string" },
+    "context_capsule": { "type": ["object", "null"] },
+    "plan": { "type": ["object", "null"] },
+    "models": { "type": "object" },
+    "hardware": { "type": "object" },
+    "renderer": { "type": "object" },
+    "output": { "type": "object" },
+    "conditioning_metrics": {
+      "type": "object",
+      "required": ["measurement_policy", "run_conditioning_mse", "bridge_val_mse", "measured"],
+      "properties": {
+        "measurement_policy": { "const": "observed_only" },
+        "run_conditioning_mse": { "type": ["number", "null"] },
+        "bridge_val_mse": { "type": ["number", "null"] },
+        "measured": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "error": { "type": ["string", "null"] },
+    "protocol_version": { "const": "0.1" },
+    "translator_version": { "type": "string" },
+    "precision": {
+      "type": "object",
+      "required": ["gemma_quantization", "anima_dtype", "translator_dtype"],
+      "properties": {
+        "gemma_quantization": { "type": "string" },
+        "anima_dtype": { "type": "string" },
+        "translator_dtype": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "memory_policy": { "type": "object" },
+    "lineage": {
+      "type": "object",
+      "required": ["dataset_id", "lineage", "public_release_allowed"],
+      "properties": {
+        "dataset_id": { "type": "string" },
+        "lineage": { "type": "string" },
+        "public_release_allowed": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "modules": {
+      "type": "object",
+      "required": ["frozen", "trainable"],
+      "properties": {
+        "frozen": { "type": "array", "items": { "type": "string" } },
+        "trainable": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "created_at": { "type": "string" }
+  },
+  "additionalProperties": true
+}

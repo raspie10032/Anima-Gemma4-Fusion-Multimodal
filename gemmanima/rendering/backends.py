@@ -16,7 +16,7 @@ from gemmanima.rendering.t5_tokenizer import t5_tokenizer_environment
 from gemmanima.rendering.anima_sampler import anima_sampler_environment
 
 
-RendererBackendName = Literal["external_script", "in_process"]
+RendererBackendName = Literal["external_script", "in_process", "local_worker"]
 
 
 @dataclass(frozen=True)
@@ -46,6 +46,8 @@ def renderer_backend_profile(
 ) -> RendererBackendProfile:
     if name == "external_script":
         return _external_script_profile(config=config)
+    if name == "local_worker":
+        return _local_worker_profile(config=config)
     if name == "in_process":
         return _in_process_profile(config=config)
     raise ValueError(f"unknown renderer backend: {name}")
@@ -54,6 +56,7 @@ def renderer_backend_profile(
 def audit_renderer_backend(config: EngineConfig | None = None) -> dict[str, dict[str, object]]:
     return {
         "external_script": renderer_backend_profile("external_script", config=config).to_json_dict(),
+        "local_worker": renderer_backend_profile("local_worker", config=config).to_json_dict(),
         "in_process": renderer_backend_profile("in_process", config=config).to_json_dict(),
     }
 
@@ -81,6 +84,8 @@ def _in_process_profile(config: EngineConfig | None = None) -> RendererBackendPr
         "embedded_python": DEFAULT_EMBEDDED_PYTHON.exists(),
         "comfy_bootstrap_module": True,
         "comfy_root": bootstrap.comfy_root.exists(),
+        "embedded_site_packages": bootstrap.embedded_site_packages.exists(),
+        "comfy_aimdo_module": (bootstrap.embedded_site_packages / "comfy_aimdo").exists(),
         "comfy_import": _can_import_from_comfy_root(bootstrap.comfy_root),
         "gemma_hidden_provider_module": True,
         "gemma_model_safetensors": bool(gemma_env["model_safetensors"]),
@@ -98,6 +103,8 @@ def _in_process_profile(config: EngineConfig | None = None) -> RendererBackendPr
         for key in (
             "embedded_python",
             "comfy_root",
+            "embedded_site_packages",
+            "comfy_aimdo_module",
             "comfy_import",
             "gemma_hidden_provider_module",
             "gemma_model_safetensors",
@@ -119,6 +126,20 @@ def _in_process_profile(config: EngineConfig | None = None) -> RendererBackendPr
         next_steps=(
             "legacy_script_removed",
         ),
+    )
+
+
+def _local_worker_profile(config: EngineConfig | None = None) -> RendererBackendProfile:
+    in_process = _in_process_profile(config=config)
+    checks = dict(in_process.checks)
+    checks["worker_module"] = True
+    return RendererBackendProfile(
+        name="local_worker",
+        execution="subprocess",
+        ready=in_process.ready,
+        dependency_ready=in_process.dependency_ready,
+        checks=checks,
+        next_steps=("native_crash_isolated_from_chat_server",),
     )
 
 

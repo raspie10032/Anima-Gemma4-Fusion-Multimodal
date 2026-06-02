@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gemmanima.local/schemas/gemmanima_protocol.schema.json",
+  "title": "GEMMANIMA Protocol v0.1",
+  "type": "object",
+  "required": ["version", "scene", "character", "style", "mood", "reference", "instruction", "conflict", "conditioning"],
+  "properties": {
+    "version": {
+      "const": "0.1"
+    },
+    "scene": {
+      "type": "object",
+      "properties": {
+        "location": { "type": "string" },
+        "subjects": { "type": "array", "items": { "type": "string" } },
+        "action": { "type": "string" },
+        "mood": { "type": "string" },
+        "visual_anchors": { "type": "array", "items": { "type": "string" } },
+        "negative_constraints": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "character": {
+      "type": "object",
+      "properties": {
+        "identity": { "type": "string" },
+        "appearance": { "type": "array", "items": { "type": "string" } },
+        "outfit": { "type": "string" },
+        "accessories": { "type": "array", "items": { "type": "string" } },
+        "facial_impression": { "type": "string" },
+        "consistency_priority": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "style": {
+      "type": "object",
+      "properties": {
+        "medium": { "type": "string" },
+        "line_quality": { "type": "string" },
+        "shading": { "type": "string" },
+        "palette": { "type": "array", "items": { "type": "string" } },
+        "detail_density": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "mood": {
+      "type": "object",
+      "properties": {
+        "emotion": { "type": "string" },
+        "atmosphere": { "type": "string" },
+        "tension": { "type": "string" },
+        "lighting": { "type": "string" },
+        "palette_direction": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "reference": {
+      "type": "object",
+      "properties": {
+        "source_image_id": { "type": "string" },
+        "preserve": { "type": "array", "items": { "type": "string" } },
+        "allow_modify": { "type": "array", "items": { "type": "string" } },
+        "strength": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "instruction": {
+      "type": "object",
+      "properties": {
+        "user_intent": { "type": "string" },
+        "explicit_changes": { "type": "array", "items": { "type": "string" } },
+        "preserve_requests": { "type": "array", "items": { "type": "string" } },
+        "forbidden_changes": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "conflict": {
+      "$ref": "conflict_report.schema.json"
+    },
+    "conditioning": {
+      "type": "object",
+      "properties": {
+        "semantic_weight": { "type": "number" },
+        "reference_weight": { "type": "number" },
+        "style_weight": { "type": "number" },
+        "mood_weight": { "type": "number" },
+        "spatial_weight": { "type": "number" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

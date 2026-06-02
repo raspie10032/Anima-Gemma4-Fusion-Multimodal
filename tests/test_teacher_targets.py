@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from gemmanima.training.teacher_targets import audit_target_cache, export_teacher_subset
+from gemmanima.training.teacher_targets import build_cache_targets_command
 
 
 def test_export_teacher_subset_uses_teacher_prompt(tmp_path: Path) -> None:
@@ -28,6 +29,9 @@ def test_export_teacher_subset_uses_teacher_prompt(tmp_path: Path) -> None:
     assert rows[1]["text"] == "fallback prompt"
     assert "06_cache_targets.py" in result.command
     assert "python_embeded" in result.command
+    assert result.cache_manifest_command
+    assert "write-cache-manifest" in result.cache_manifest_command
+    assert result.cache_manifest_path.name == "CACHE_BUILD_MANIFEST.json"
 
 
 def test_audit_target_cache_reports_shards(tmp_path: Path) -> None:
@@ -39,3 +43,14 @@ def test_audit_target_cache_reports_shards(tmp_path: Path) -> None:
     assert audit["exists"] is True
     assert audit["shard_count"] == 2
     assert audit["first_shard"].endswith("shard_0000.pt")
+
+
+def test_cache_target_command_uses_powershell_call_operator_for_quoted_python(tmp_path: Path) -> None:
+    command = build_cache_targets_command(
+        subset_path=tmp_path / "subset.jsonl",
+        outdir=tmp_path / "targets",
+        gpu_index=0,
+    )
+
+    assert "$env:CUDA_VISIBLE_DEVICES='0'; & " in command
+    assert '"E:\\ComfyUI_sage\\python_embeded\\python.exe"' in command

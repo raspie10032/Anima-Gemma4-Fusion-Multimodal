@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gemmanima.local/schemas/cache_build_manifest.schema.json",
+  "title": "GEMMANIMA CacheBuildManifest v0.1",
+  "type": "object",
+  "required": [
+    "protocol_version",
+    "stage",
+    "cache_kind",
+    "sample_count",
+    "source_manifest",
+    "output_dir",
+    "success_count",
+    "failure_count",
+    "success_rate",
+    "shape",
+    "dtype",
+    "device",
+    "lineage"
+  ],
+  "properties": {
+    "protocol_version": { "const": "0.1" },
+    "stage": { "type": "string" },
+    "cache_kind": {
+      "type": "string",
+      "enum": ["gemma_text_state", "gemma_vision_projection", "anima_te_conditioning"]
+    },
+    "sample_count": { "type": "integer", "minimum": 0 },
+    "source_manifest": { "type": "string" },
+    "output_dir": { "type": "string" },
+    "success_count": { "type": "integer", "minimum": 0 },
+    "failure_count": { "type": "integer", "minimum": 0 },
+    "success_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+    "shape": { "type": "array", "items": { "type": "integer" } },
+    "dtype": { "type": "string" },
+    "device": { "type": "string" },
+    "lineage": {
+      "type": "object",
+      "required": ["lineage", "public_release_allowed"],
+      "properties": {
+        "lineage": { "type": "string" },
+        "public_release_allowed": { "type": "boolean" },
+        "dataset_id": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

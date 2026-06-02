@@ -6,6 +6,8 @@ import math
 from pathlib import Path
 from typing import Any
 
+from gemmanima.training.cache_manifest import build_cache_manifest_write_command
+
 
 TARGET_COVERAGE_MARKER = "TARGET_COVERAGE_COMPLETE.json"
 
@@ -17,6 +19,8 @@ class TeacherSubsetExport:
     rows_written: int
     skipped_rows: int
     command: str
+    cache_manifest_path: Path
+    cache_manifest_command: str
 
     def to_json_dict(self) -> dict[str, Any]:
         return {
@@ -25,6 +29,8 @@ class TeacherSubsetExport:
             "rows_written": self.rows_written,
             "skipped_rows": self.skipped_rows,
             "command": self.command,
+            "cache_manifest_path": str(self.cache_manifest_path),
+            "cache_manifest_command": self.cache_manifest_command,
         }
 
 
@@ -34,6 +40,7 @@ def export_teacher_subset(
     *,
     limit: int = 0,
     text_key: str = "teacher_prompt",
+    target_dir: str | Path = r"E:\anima_gemma_swap\cache_hiddenstage_planner_v2\targets",
 ) -> TeacherSubsetExport:
     src = Path(manifest_path)
     dst = Path(output_subset)
@@ -74,13 +81,28 @@ def export_teacher_subset(
             if limit and rows_written >= limit:
                 break
 
-    command = build_cache_targets_command(subset_path=dst)
+    target_root = Path(target_dir)
+    command = build_cache_targets_command(subset_path=dst, outdir=target_root)
+    cache_manifest_path = target_root / "CACHE_BUILD_MANIFEST.json"
+    cache_manifest_command = build_cache_manifest_write_command(
+        cache_kind="anima_te_conditioning",
+        sample_count=rows_written,
+        source_manifest=dst,
+        output_dir=target_root,
+        manifest_out=cache_manifest_path,
+        success_count=rows_written,
+        shape=(1, 512, 1024),
+        dtype="float16",
+        device="cuda:0",
+    )
     return TeacherSubsetExport(
         input_manifest=src,
         output_subset=dst,
         rows_written=rows_written,
         skipped_rows=skipped,
         command=command,
+        cache_manifest_path=cache_manifest_path,
+        cache_manifest_command=cache_manifest_command,
     )
 
 
@@ -90,9 +112,12 @@ def build_cache_targets_command(
     outdir: str | Path = r"E:\anima_gemma_swap\cache_hiddenstage_planner_v2\targets",
     shard: int = 2000,
     python_exe: str | Path = r"E:\ComfyUI_sage\python_embeded\python.exe",
+    gpu_index: int | None = None,
 ) -> str:
+    prefix = "" if gpu_index is None else f"$env:CUDA_VISIBLE_DEVICES='{gpu_index}'; "
+    script = Path(r"E:\anima_gemma_swap\scripts\core\06_cache_targets.py")
     return (
-        f"\"{Path(python_exe)}\" E:\\anima_gemma_swap\\scripts\\core\\06_cache_targets.py "
+        f"{prefix}& \"{Path(python_exe)}\" \"{script}\" "
         f"--subset \"{Path(subset_path)}\" "
         f"--outdir \"{Path(outdir)}\" "
         f"--shard {shard} --resume"

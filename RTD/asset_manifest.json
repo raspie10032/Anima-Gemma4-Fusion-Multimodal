@@ -1,0 +1,165 @@
+{
+    "bundle":  "GemmAnima RTD",
+    "repo_root":  "C:\\Users\\seine\\Documents\\Anima-Gemma4-Fusion-Multimodal",
+    "policy":  {
+                   "copy_large_models_into_rtd":  false,
+                   "primary_gpu":  "RTX 4070 Ti SUPER",
+                   "keep_rtx_5060_out_of_pytorch_training":  true,
+                   "promote_models_without_evaluation":  false,
+                   "release_status":  "v0.1 public prototype adapter/checkpoint bundle"
+               },
+    "python":  {
+                   "minimum":  "3.10",
+                   "test_command":  "python -m pytest -q"
+               },
+    "llama_cpp":  {
+                      "text_cli":  "D:\\Projects\\training\\llama_b9209_cuda\\llama-cli.exe",
+                      "vision_cli":  "D:\\Projects\\training\\llama_b9209_cuda\\llama-mtmd-cli.exe",
+                      "text_backend":  "in-process llama-cpp-python resident runtime",
+                      "cuda_python_wheel":  "https://abetlen.github.io/llama-cpp-python/whl/cu124",
+                      "supports_runtime_lora":  true,
+                      "lora_flags":  [
+                                         "--lora",
+                                         "--lora-scaled"
+                                     ],
+                      "device":  "CUDA0",
+                      "visible_devices":  "0"
+                  },
+    "target_runtime":  {
+                           "preferred_shape":  "one shared base GGUF plus task LoRA/adapters",
+                           "base_gguf":  "D:\\Projects\\training\\out\\gemma-4-E2B-it-heretic-ara-Q4_K_M.gguf",
+                           "base_gguf_size_mb":  3269.07,
+                           "notes":  [
+                                         "This is the active RTD packaging shape.",
+                                         "tipo_runtime keeps the shared base GGUF resident through in-process llama-cpp-python.",
+                                         "Text calls attach the text LoRA; vision tag calls attach the vision LoRA and mmproj handler to the same resident base.",
+                                         "llama.cpp CLI remains available as a fallback path."
+                                     ]
+                       },
+    "model_parts":  {
+                        "gemma_core":  {
+                                           "label":  "Gemma Core",
+                                           "purpose":  "chat, language harness, Danbooru tag output, and vision tagger language core",
+                                           "shared_base_gguf":  "D:\\Projects\\training\\out\\gemma-4-E2B-it-heretic-ara-Q4_K_M.gguf",
+                                           "text_lora":  "D:\\Projects\\training\\out\\lora\\adapter_model.f16.gguf",
+                                           "vision_lora":  "D:\\Projects\\training\\out\\gemmanima_v4_vision_tagger\\adapter_model.f16.gguf",
+                                           "vision_mmproj":  "D:\\Projects\\training\\out\\_completed\\gemma4-tipo-vision.mmproj-f16.gguf"
+                                       },
+                        "anima_image_core":  {
+                                                 "label":  "Anima Image Core",
+                                                 "purpose":  "diffusion sampling and VAE decode; no Anima text encoder weights required",
+                                                 "diffusion_model":  "E:\\ComfyUI_sage\\ComfyUI\\models\\diffusion_models\\anima-base-v1.0.safetensors",
+                                                 "vae":  "E:\\ComfyUI_sage\\ComfyUI\\models\\vae\\qwen_image_vae.safetensors",
+                                                 "supported_samplers":  [
+                                                                            "euler",
+                                                                            "euler_ancestral",
+                                                                            "dpmpp_2m",
+                                                                            "dpmpp_2m_sde_gpu"
+                                                                        ],
+                                                 "supported_schedulers":  [
+                                                                              "normal",
+                                                                              "karras",
+                                                                              "sgm_uniform"
+                                                                          ]
+                                             },
+                        "hiddenstage_bridge":  {
+                                                   "label":  "HiddenStage Bridge",
+                                                   "purpose":  "Gemma hidden-state to Anima conditioning bridge",
+                                                   "planner_adapter":  "D:\\Projects\\training\\out\\hiddenstage_multimodal_planner_anima_v2\\adapter_model.safetensors",
+                                                   "planner_vision_embedding":  "D:\\Projects\\training\\out\\hiddenstage_multimodal_planner_anima_v2\\embed_vision.pt",
+                                                   "bridge_checkpoint":  "E:\\anima_gemma_swap\\kv_proj_hiddenstage_planner_v2.pt",
+                                                   "planner_eval_loss":  1.0061092711985111,
+                                                   "planner_eval_threshold":  1.5,
+                                                   "bridge_val_mse":  0.001104317136865575,
+                                                   "bridge_profiles":  {
+                                                                           "balanced_pose":  "C:\\Users\\seine\\Documents\\Anima-Gemma4-Fusion-Multimodal\\runs\\cache\\bridge_quality_1p53m_v2_153k_pose10k\\bridge\\kv_proj_bridge_quality_1p53m_v2_153k_pose10k_from_a0p35.pt",
+                                                                           "style_artist":  "C:\\Users\\seine\\Documents\\Anima-Gemma4-Fusion-Multimodal\\runs\\cache\\text_preservation_blended_v37\\bridge\\text_preservation_blended_v37a_10k_bridge.pt",
+                                                                           "text_exact":  "C:\\Users\\seine\\Documents\\Anima-Gemma4-Fusion-Multimodal\\runs\\cache\\text_preservation_blended_v27\\bridge\\text_preservation_blended_v27_alpha35_bridge.pt",
+                                                                           "legacy_mse":  "E:\\anima_gemma_swap\\kv_proj_hiddenstage_planner_v2.pt"
+                                                                       }
+                                               }
+                    },
+    "tipo":  {
+                 "runtime_mode":  "shared base GGUF plus task LoRA/adapters",
+                 "base_model":  "D:\\Projects\\training\\out\\gemma-4-E2B-it-heretic-ara-Q4_K_M.gguf",
+                 "base_model_size_mb":  3269.07,
+                 "text_lora":  "D:\\Projects\\training\\out\\lora\\adapter_model.f16.gguf",
+                 "text_lora_size_mb":  46.11,
+                 "vision_lora":  "D:\\Projects\\training\\out\\gemmanima_v4_vision_tagger\\adapter_model.f16.gguf",
+                 "vision_lora_size_mb":  46.11,
+                 "vision_mmproj":  "D:\\Projects\\training\\out\\_completed\\gemma4-tipo-vision.mmproj-f16.gguf",
+                 "vision_mmproj_size_mb":  939.99,
+                 "merged_reference_models":  {
+                                                 "text_model":  "D:\\Projects\\training\\out\\gemma4-tipo-ko-v2-Q4_K_M.gguf",
+                                                 "text_model_size_mb":  3257.86,
+                                                 "vision_model":  "D:\\Projects\\training\\out\\_completed\\gemma4-tipo-vision-Q4_K_M.gguf",
+                                                 "vision_model_size_mb":  3257.86
+                                             },
+                 "known_lora_candidates":  [
+                                               {
+                                                   "name":  "visual_expand_tagsonly",
+                                                   "path":  "D:\\Projects\\training\\out\\visual_expand_tagsonly\\adapter_model.safetensors",
+                                                   "size_mb":  96.73,
+                                                   "status":  "candidate; needs compatibility check for direct llama.cpp --lora loading"
+                                               },
+                                               {
+                                                   "name":  "visual_expand_lora",
+                                                   "path":  "D:\\Projects\\training\\out\\visual_expand_lora\\adapter_model.safetensors",
+                                                   "size_mb":  96.73,
+                                                   "status":  "candidate; older/contamination history should be checked before use"
+                                               },
+                                               {
+                                                   "name":  "gemmanima_v4_vision_tagger",
+                                                   "path":  "D:\\Projects\\training\\out\\gemmanima_v4_vision_tagger\\adapter_model.f16.gguf",
+                                                   "size_mb":  46.11,
+                                                   "status":  "runtime default; converted from adapter_model.safetensors for llama.cpp --lora"
+                                               },
+                                               {
+                                                   "name":  "gemmanima_v4_vision_tagger_safetensors_source",
+                                                   "path":  "D:\\Projects\\training\\out\\gemmanima_v4_vision_tagger\\adapter_model.safetensors",
+                                                   "size_mb":  92.21,
+                                                   "status":  "source adapter; keep for retraining/export reference"
+                                               },
+                                               {
+                                                   "name":  "e10k_poseboost_checkpoint",
+                                                   "path":  "D:\\Projects\\training\\out\\gemmanima_relearning_v1\\vision_tagger_e10k_poseboost_rank8_vram_limit_v1\\ckpt\\adapter.pt",
+                                                   "size_mb":  46.22,
+                                                   "status":  "checkpoint only; not promoted or converted"
+                                               }
+                                           ]
+             },
+    "planner":  {
+                    "adapter_model":  "D:\\Projects\\training\\out\\hiddenstage_multimodal_planner_anima_v2\\adapter_model.safetensors",
+                    "vision_embedding":  "D:\\Projects\\training\\out\\hiddenstage_multimodal_planner_anima_v2\\embed_vision.pt",
+                    "eval_loss":  1.0061092711985111,
+                    "eval_threshold":  1.5
+                },
+    "anima":  {
+                  "diffusion_model":  "E:\\ComfyUI_sage\\ComfyUI\\models\\diffusion_models\\anima-base-v1.0.safetensors",
+                  "vae":  "E:\\ComfyUI_sage\\ComfyUI\\models\\vae\\qwen_image_vae.safetensors",
+                  "hiddenstage_bridge":  "E:\\anima_gemma_swap\\kv_proj_hiddenstage_planner_v2.pt",
+                  "hiddenstage_bridge_val_mse":  0.001104317136865575,
+                  "hiddenstage_bridge_profiles":  {
+                                                      "balanced_pose":  "C:\\Users\\seine\\Documents\\Anima-Gemma4-Fusion-Multimodal\\runs\\cache\\bridge_quality_1p53m_v2_153k_pose10k\\bridge\\kv_proj_bridge_quality_1p53m_v2_153k_pose10k_from_a0p35.pt",
+                                                      "style_artist":  "C:\\Users\\seine\\Documents\\Anima-Gemma4-Fusion-Multimodal\\runs\\cache\\text_preservation_blended_v37\\bridge\\text_preservation_blended_v37a_10k_bridge.pt",
+                                                      "text_exact":  "C:\\Users\\seine\\Documents\\Anima-Gemma4-Fusion-Multimodal\\runs\\cache\\text_preservation_blended_v27\\bridge\\text_preservation_blended_v27_alpha35_bridge.pt",
+                                                      "legacy_mse":  "E:\\anima_gemma_swap\\kv_proj_hiddenstage_planner_v2.pt"
+                                                  }
+              },
+    "comfyui":  {
+                    "embedded_python":  "E:\\ComfyUI_sage\\python_embeded\\python.exe",
+                    "comfy_root":  "E:\\ComfyUI_anima_exp",
+                    "models_root":  "E:\\ComfyUI_sage\\ComfyUI\\models",
+                    "project_root":  "E:\\anima_gemma_swap",
+                    "external_script":  "E:\\anima_gemma_swap\\scripts\\core\\18_hiddenstage_chat_generate.py"
+                },
+    "gemma_hidden":  {
+                         "snapshot":  "C:\\Users\\seine\\.cache\\huggingface\\hub\\models--p-e-w--gemma-4-E2B-it-heretic-ara\\snapshots\\c9a1d4c031981f14d86eeb0c7d87de7fafd34513",
+                         "prefix":  "model.language_model."
+                     },
+    "outputs":  {
+                    "manifests":  "runs\\manifests",
+                    "images":  "runs\\images",
+                    "reference_real_smoke":  "runs\\images\\nahida_hiddenstage_bridge_real_smoke.png"
+                }
+}

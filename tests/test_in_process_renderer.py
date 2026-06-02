@@ -36,7 +36,16 @@ def test_in_process_renderer_builds_conditioning_and_samples(tmp_path: Path) -> 
     )
 
     result = renderer.generate(
-        GenerationPlan(prompt="bright forest", width=512, height=512, steps=12, cfg=4.5, seed=123),
+        GenerationPlan(
+            prompt="bright forest",
+            width=512,
+            height=768,
+            steps=12,
+            cfg=4.5,
+            seed=123,
+            sampler="euler",
+            scheduler="normal",
+        ),
         ConditioningBundle(
             source="trained_hiddenstage_bridge",
             metadata={
@@ -49,6 +58,10 @@ def test_in_process_renderer_builds_conditioning_and_samples(tmp_path: Path) -> 
     assert result.output_path.exists()
     request = sampler_runtime.requests[0]
     assert request.seed == 123
+    assert request.width == 512
+    assert request.height == 768
+    assert request.sampler == "euler"
+    assert request.scheduler == "normal"
     assert request.positive[0][0].shape == (1, 2, 1536)
     assert request.positive[0][1]["t5xxl_ids"].tolist() == [1, 2]
 
@@ -72,8 +85,8 @@ def test_in_process_renderer_attaches_adapter_when_building_runtime(monkeypatch,
     def fake_sampler():
         return object()
 
-    def fake_bootstrap():
-        calls.append(("bootstrap",))
+    def fake_bootstrap(**kwargs):
+        calls.append(("bootstrap", kwargs))
 
     monkeypatch.setattr("gemmanima.modules.in_process_anima_renderer.bootstrap_comfy", fake_bootstrap)
     monkeypatch.setattr("gemmanima.modules.in_process_anima_renderer.load_anima_model_vae", fake_load_model_vae)
@@ -87,10 +100,45 @@ def test_in_process_renderer_attaches_adapter_when_building_runtime(monkeypatch,
 
     renderer._ensure_runtime()
 
-    assert calls[0] == ("bootstrap",)
+    assert calls[0] == ("bootstrap", {"comfy_args": ()})
     assert calls[1][0] == "load"
     assert str(calls[1][1]).endswith("anima-base-v1.0.safetensors")
     assert str(calls[1][2]).endswith("qwen_image_vae.safetensors")
     assert calls[1][3] == "fp8_e4m3fn_fast"
     assert calls[2][0] == "attach"
     assert str(calls[2][2]).endswith("kv_proj_hiddenstage_planner_v2.pt")
+
+
+def test_in_process_renderer_bootstraps_comfy_before_loading_gemma_runtime(monkeypatch, tmp_path: Path) -> None:
+    calls = []
+
+    class FakeGemmaTextRuntime:
+        def __init__(self):
+            calls.append(("gemma_text_runtime",))
+
+    class FakeGemmaHiddenProvider:
+        def __init__(self, runtime):
+            calls.append(("gemma_hidden_provider", runtime))
+
+    def fake_bootstrap(**kwargs):
+        calls.append(("bootstrap", kwargs))
+
+    monkeypatch.setattr("gemmanima.modules.in_process_anima_renderer.GemmaTextRuntime", FakeGemmaTextRuntime)
+    monkeypatch.setattr("gemmanima.modules.in_process_anima_renderer.GemmaHiddenProvider", FakeGemmaHiddenProvider)
+    monkeypatch.setattr("gemmanima.modules.in_process_anima_renderer.bootstrap_comfy", fake_bootstrap)
+    monkeypatch.setattr("gemmanima.modules.in_process_anima_renderer.build_t5_tokenizer_provider", lambda: object())
+    monkeypatch.setattr(
+        "gemmanima.modules.in_process_anima_renderer.load_anima_model_vae",
+        lambda **kwargs: (object(), object()),
+    )
+    monkeypatch.setattr(
+        "gemmanima.modules.in_process_anima_renderer.attach_hiddenstage_adapter",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr("gemmanima.modules.in_process_anima_renderer.build_comfy_sampler", lambda: object())
+
+    renderer = InProcessAnimaRendererAdapter(output_root=tmp_path)
+    renderer._ensure_runtime()
+
+    assert calls[0] == ("bootstrap", {"comfy_args": ()})
+    assert calls[1] == ("gemma_text_runtime",)

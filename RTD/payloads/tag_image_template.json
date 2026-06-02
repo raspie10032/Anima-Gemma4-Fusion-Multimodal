@@ -1,0 +1,5 @@
+{
+  "task": "tag",
+  "message": "tag this image",
+  "image_path": "D:\\path\\to\\image.png"
+}

@@ -95,3 +95,33 @@ def test_run_applies_anima_model_and_dtype_overrides(monkeypatch, tmp_path: Path
     kwargs = CapturingRenderer.init_kwargs[0]
     assert kwargs["unet_dtype"] == "default"
     assert kwargs["config"].models.anima_diffusion_model == anima_dm
+
+
+def test_run_applies_hiddenstage_bridge_override(monkeypatch, tmp_path: Path, capsys) -> None:
+    CapturingRenderer.plans = []
+    CapturingRenderer.init_kwargs = []
+    monkeypatch.setattr(cli, "InProcessAnimaRendererAdapter", CapturingRenderer)
+    bridge = tmp_path / "kv_proj_text_delta_300k_from_epoch1_a0p35.pt"
+
+    assert (
+        cli.main(
+            [
+                "run",
+                "draw a bright forest",
+                "--renderer",
+                "in-process",
+                "--hiddenstage-bridge",
+                str(bridge),
+                "--manifest-root",
+                str(tmp_path / "manifests"),
+                "--image-root",
+                str(tmp_path / "images"),
+                "--json",
+            ]
+        )
+        == 0
+    )
+
+    json.loads(capsys.readouterr().out)
+    kwargs = CapturingRenderer.init_kwargs[0]
+    assert kwargs["config"].models.hiddenstage_bridge == bridge

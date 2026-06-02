@@ -1,0 +1,27 @@
+{
+  "name": "gemmanima_relearning_v1",
+  "purpose": "Clean Danbooru unified re-learning run for image-to-tags and later text/tag planning.",
+  "repo_root": "C:\\Users\\seine\\Documents\\Anima-Gemma4-Fusion-Multimodal",
+  "training_root": "D:\\Projects\\training",
+  "training_python": "D:\\Projects\\training\\.venv\\Scripts\\python.exe",
+  "dataset_root": "D:\\Projects\\danbooru_unified",
+  "train_manifest": "D:\\Projects\\danbooru_unified\\manifest_visual_expand.jsonl",
+  "processed_root": "D:\\Projects\\danbooru_unified\\processed_v1",
+  "cache_dir": "D:\\Projects\\danbooru_unified\\img_embeds_pre",
+  "output_root": "D:\\Projects\\training\\out\\gemmanima_relearning_v1",
+  "vision_tagger_output": "D:\\Projects\\training\\out\\gemmanima_relearning_v1\\vision_tagger_clean_v1",
+  "text_tag_planner_output": "D:\\Projects\\training\\out\\gemmanima_relearning_v1\\text_tag_planner_clean_v1",
+  "log_dir": "C:\\Users\\seine\\Documents\\Anima-Gemma4-Fusion-Multimodal\\re-learning\\logs",
+  "cache_script": "D:\\Projects\\training\\v02_encode_images.py",
+  "train_script": "D:\\Projects\\training\\v14_train_visual_expand_lora.py",
+  "gpu_policy": {
+    "pytorch_cache_and_training": "RTX 4070 Ti SUPER",
+    "avoid": "RTX 5060 for PyTorch cache/training unless the installed torch build supports sm_120"
+  },
+  "dataset_counts": {
+    "train_rows": 127300,
+    "val_rows": 1260,
+    "test_rows": 1290,
+    "total_kept_rows": 129850
+  }
+}

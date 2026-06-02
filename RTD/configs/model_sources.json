@@ -1,0 +1,80 @@
+{
+    "model_root_default":  "%LOCALAPPDATA%\\GemmAnima\\models",
+    "model_root_override_env":  "GEMMANIMA_MODEL_ROOT",
+    "adapter_repo_override_env":  "GEMMANIMA_ADAPTER_REPO",
+    "sources":  {
+                    "gemma_core.shared_base_gguf":  {
+                                                        "origin":  "original_model_page",
+                                                        "repo_id":  "mradermacher/gemma-4-E2B-it-heretic-ara-custom-GGUF",
+                                                        "filename":  "gemma-4-E2B-it-heretic-ara-custom.Q4_K_M.gguf",
+                                                        "license_id":  "apache-2.0"
+                                                    },
+                    "gemma_core.text_lora":  {
+                                                 "origin":  "gemmanima_adapter_bundle",
+                                                 "repo_id":  "raspie/gemmanima-adapter-bundle",
+                                                 "filename":  "gemma_core/text-adapter-model-f16.gguf",
+                                                 "license_id":  "other"
+                                             },
+                    "gemma_core.vision_lora":  {
+                                                   "origin":  "gemmanima_adapter_bundle",
+                                                   "repo_id":  "raspie/gemmanima-adapter-bundle",
+                                                   "filename":  "gemma_core/vision-tagger-adapter-model-f16.gguf",
+                                                   "license_id":  "other"
+                                               },
+                    "gemma_core.vision_mmproj":  {
+                                                     "origin":  "gemmanima_adapter_bundle",
+                                                     "repo_id":  "raspie/gemmanima-adapter-bundle",
+                                                     "filename":  "gemma_core/gemma4-tipo-vision.mmproj-f16.gguf",
+                                                     "license_id":  "other"
+                                                 },
+                    "anima_image_core.diffusion_model":  {
+                                                             "origin":  "original_model_page",
+                                                             "repo_id":  "circlestone-labs/Anima",
+                                                             "filename":  "split_files/diffusion_models/anima-base-v1.0.safetensors",
+                                                             "license_id":  "circlestone-labs-non-commercial-license",
+                                                             "license_note":  "The upstream Anima page also states that the model is a derivative of NVIDIA Cosmos-Predict2-2B-Text2Image and is subject to the NVIDIA Open Model License Agreement where applicable."
+                                                         },
+                    "anima_image_core.vae":  {
+                                                 "origin":  "original_model_page",
+                                                 "repo_id":  "circlestone-labs/Anima",
+                                                 "filename":  "split_files/vae/qwen_image_vae.safetensors",
+                                                 "license_id":  "circlestone-labs-non-commercial-license"
+                                             },
+                    "hiddenstage_bridge.planner_adapter":  {
+                                                               "origin":  "gemmanima_adapter_bundle",
+                                                               "repo_id":  "raspie/gemmanima-adapter-bundle",
+                                                               "filename":  "hiddenstage_bridge/hiddenstage-planner-adapter.safetensors",
+                                                               "license_id":  "other"
+                                                           },
+                    "hiddenstage_bridge.planner_vision_embedding":  {
+                                                                        "origin":  "gemmanima_adapter_bundle",
+                                                                        "repo_id":  "raspie/gemmanima-adapter-bundle",
+                                                                        "filename":  "hiddenstage_bridge/hiddenstage-planner-embed-vision.pt",
+                                                                        "license_id":  "other"
+                                                                    },
+                    "hiddenstage_bridge.bridge_checkpoint":  {
+                                                                 "origin":  "gemmanima_adapter_bundle",
+                                                                 "repo_id":  "raspie/gemmanima-adapter-bundle",
+                                                                 "filename":  "hiddenstage_bridge/kv_proj_hiddenstage_planner_v2.pt",
+                                                                 "license_id":  "other"
+                                                             },
+                    "hiddenstage_bridge.bridge_balanced_pose":  {
+                                                                    "origin":  "gemmanima_adapter_bundle",
+                                                                    "repo_id":  "raspie/gemmanima-adapter-bundle",
+                                                                    "filename":  "hiddenstage_bridge/kv_proj_balanced_pose_153k_pose10k_a0p35.pt",
+                                                                    "license_id":  "other"
+                                                                },
+                    "hiddenstage_bridge.bridge_style_artist":  {
+                                                                   "origin":  "gemmanima_adapter_bundle",
+                                                                   "repo_id":  "raspie/gemmanima-adapter-bundle",
+                                                                   "filename":  "hiddenstage_bridge/kv_proj_style_artist_v37a_10k.pt",
+                                                                   "license_id":  "other"
+                                                               },
+                    "hiddenstage_bridge.bridge_text_exact":  {
+                                                                 "origin":  "gemmanima_adapter_bundle",
+                                                                 "repo_id":  "raspie/gemmanima-adapter-bundle",
+                                                                 "filename":  "hiddenstage_bridge/kv_proj_text_exact_v27_alpha35.pt",
+                                                                 "license_id":  "other"
+                                                             }
+                }
+}

@@ -1,0 +1,16 @@
+{
+  "task": "chat",
+  "language": "ko",
+  "chat_mode": "image_generation_request",
+  "message": "조용한 숲 정원에 서 있는 초록색 옷의 애니메이션 소녀 이미지를 만들어줘.",
+  "renderer": "dry-run",
+  "generation_preset": "anima_balanced",
+  "resolution_preset": "square_1024",
+  "orientation": "portrait",
+  "custom_width": 1024,
+  "custom_height": 1024,
+  "sampler": "",
+  "scheduler": "",
+  "seed": 424242,
+  "history": []
+}

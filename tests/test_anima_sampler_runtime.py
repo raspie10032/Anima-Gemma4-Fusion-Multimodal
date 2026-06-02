@@ -5,8 +5,10 @@ import torch
 from gemmanima.rendering.anima_sampler import (
     AnimaSamplerRuntime,
     SamplerRequest,
-    make_gray_latent,
+    decode_samples,
+    make_empty_latent,
     save_image_tensor,
+    vae_tile_kwargs,
 )
 
 
@@ -23,6 +25,19 @@ class FakeVAE:
         self.decoded.append(samples.shape)
         return torch.ones(1, 8, 8, 3)
 
+    def spacial_compression_decode(self):
+        return 8
+
+
+class FakeTiledVAE(FakeVAE):
+    def __init__(self) -> None:
+        super().__init__()
+        self.tiled_decoded = []
+
+    def decode_tiled(self, samples, **kwargs):
+        self.tiled_decoded.append((samples.shape, kwargs))
+        return torch.ones(1, 8, 8, 3)
+
 
 class FakeSampler:
     def __init__(self) -> None:
@@ -33,13 +48,11 @@ class FakeSampler:
         return ({"samples": torch.ones(1, 4, 8, 8)},)
 
 
-def test_make_gray_latent_uses_square_rgb_tensor() -> None:
-    vae = FakeVAE()
+def test_make_empty_latent_uses_rectangular_latent_tensor() -> None:
+    latent = make_empty_latent(64, 96)
 
-    latent = make_gray_latent(vae, 64)
-
-    assert vae.encoded == [torch.Size([1, 64, 64, 3])]
-    assert latent["samples"].shape == (1, 4, 8, 8)
+    assert latent["samples"].shape == (1, 4, 12, 8)
+    assert latent["downscale_ratio_spacial"] == 8
 
 
 def test_save_image_tensor_writes_png(tmp_path: Path) -> None:
@@ -49,6 +62,30 @@ def test_save_image_tensor_writes_png(tmp_path: Path) -> None:
 
     assert path.exists()
     assert path.read_bytes().startswith(b"\x89PNG")
+
+
+def test_decode_samples_prefers_tiled_vae() -> None:
+    vae = FakeTiledVAE()
+
+    decoded = decode_samples(vae, torch.ones(1, 4, 8, 8), tiled_vae=True)
+
+    assert decoded.shape == (1, 8, 8, 3)
+    assert vae.decoded == []
+    assert vae.tiled_decoded == [
+        (torch.Size([1, 4, 8, 8]), {"tile_x": 8, "tile_y": 8, "overlap": 2})
+    ]
+
+
+def test_vae_tile_kwargs_uses_64_pixel_multiple_tiles() -> None:
+    kwargs = vae_tile_kwargs(FakeVAE(), torch.ones(1, 4, 128, 128))
+
+    assert kwargs == {"tile_x": 64, "tile_y": 64, "overlap": 8}
+
+
+def test_vae_tile_kwargs_handles_rectangular_resolution() -> None:
+    kwargs = vae_tile_kwargs(FakeVAE(), torch.ones(1, 4, 152, 104))
+
+    assert kwargs == {"tile_x": 64, "tile_y": 64, "overlap": 8}
 
 
 def test_anima_sampler_runtime_samples_decodes_and_saves(tmp_path: Path) -> None:
@@ -63,7 +100,8 @@ def test_anima_sampler_runtime_samples_decodes_and_saves(tmp_path: Path) -> None
             negative=[["neg"]],
             output_path=output,
             seed=123,
-            size=64,
+            width=64,
+            height=96,
             steps=12,
             cfg=4.5,
             sampler="euler_ancestral",
@@ -73,5 +111,6 @@ def test_anima_sampler_runtime_samples_decodes_and_saves(tmp_path: Path) -> None
 
     assert result == output
     assert output.exists()
-    assert sampler.calls == [(123, 12, 4.5, "euler_ancestral", "sgm_uniform", 1.0, torch.Size([1, 4, 8, 8]))]
+    assert vae.encoded == []
+    assert sampler.calls == [(123, 12, 4.5, "euler_ancestral", "sgm_uniform", 1.0, torch.Size([1, 4, 12, 8]))]
     assert vae.decoded == [torch.Size([1, 4, 8, 8])]

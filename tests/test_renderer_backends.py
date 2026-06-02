@@ -32,6 +32,7 @@ def test_in_process_backend_reports_import_boundary() -> None:
 def test_renderer_backend_audit_contains_both_paths() -> None:
     audit = audit_renderer_backend()
 
-    assert set(audit) == {"external_script", "in_process"}
+    assert set(audit) == {"external_script", "in_process", "local_worker"}
     assert audit["external_script"]["ready"] is True
     assert "checks" in audit["in_process"]
+    assert audit["local_worker"]["execution"] == "subprocess"

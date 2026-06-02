@@ -9,6 +9,7 @@ def test_default_gemma_cache_plans_keep_gpu_roles() -> None:
     assert plans[0].name == "gemma_4070_ti_super"
     assert plans[0].gpu_index == 0
     assert plans[0].embed_on_gpu is True
+    assert "$env:CUDA_VISIBLE_DEVICES='0'; $env:GEMMA_EMBED_ON_GPU='1'; & " in plans[0].command()
     assert "shard_[0-9][0-9][0-9][0-9].pt" in plans[0].command()
     assert "shard_re4070_*.pt" in plans[0].command()
     assert "shard_4070w2*.pt" in plans[0].command()
@@ -17,6 +18,8 @@ def test_default_gemma_cache_plans_keep_gpu_roles() -> None:
     assert plans[1].gpu_index == 1
     assert plans[1].embed_on_gpu is False
     assert "shard_5060_*.pt" in plans[1].command()
+    assert "write-cache-manifest" in plans[0].cache_manifest_command()
+    assert "--cache-kind gemma_text_state" in plans[0].cache_manifest_command()
 
 
 def test_audit_cache_pairing_reports_missing_gemma(tmp_path: Path) -> None:

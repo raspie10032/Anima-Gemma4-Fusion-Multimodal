@@ -1,0 +1,7 @@
+{
+  "task": "chat",
+  "language": "ko",
+  "chat_mode": "general_chat",
+  "message": "현재 파이프라인 상태를 간단히 설명해줘.",
+  "history": []
+}

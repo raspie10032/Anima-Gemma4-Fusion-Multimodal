@@ -14,12 +14,15 @@ class SamplerRequest:
     negative: list[list[object]]
     output_path: Path
     seed: int
-    size: int
     steps: int
     cfg: float
+    width: int | None = None
+    height: int | None = None
+    size: int | None = None
     sampler: str = "euler_ancestral"
     scheduler: str = "sgm_uniform"
     denoise: float = 1.0
+    tiled_vae: bool = True
 
 
 class AnimaSamplerRuntime:
@@ -29,7 +32,11 @@ class AnimaSamplerRuntime:
         self.sampler = sampler
 
     def sample_to_file(self, request: SamplerRequest) -> Path:
-        latent = make_gray_latent(self.vae, request.size)
+        width = request.width or request.size
+        height = request.height or request.size
+        if width is None or height is None:
+            raise ValueError("sampler request requires width/height or size")
+        latent = make_empty_latent(width, height)
         sampled = self.sampler.sample(
             self.model,
             request.seed,
@@ -42,14 +49,86 @@ class AnimaSamplerRuntime:
             latent,
             denoise=request.denoise,
         )[0]
-        decoded = self.vae.decode(sampled["samples"])
+        decoded = decode_samples(self.vae, sampled["samples"], tiled_vae=request.tiled_vae)
         save_image_tensor(decoded, request.output_path)
         return request.output_path
 
 
-def make_gray_latent(vae: Any, size: int) -> dict[str, torch.Tensor]:
-    gray = torch.full((1, size, size, 3), 0.5, dtype=torch.float32)
-    return {"samples": vae.encode(gray)}
+def make_empty_latent(width: int, height: int | None = None, *, batch_size: int = 1) -> dict[str, torch.Tensor]:
+    resolved_height = height if height is not None else width
+    latent_height = max(1, resolved_height // 8)
+    latent_width = max(1, width // 8)
+    device: torch.device | str = "cpu"
+    dtype = torch.float32
+    try:
+        import comfy.model_management
+
+        device = comfy.model_management.intermediate_device()
+        dtype = comfy.model_management.intermediate_dtype()
+    except Exception:
+        pass
+    latent = torch.zeros([batch_size, 4, latent_height, latent_width], device=device, dtype=dtype)
+    return {"samples": latent, "downscale_ratio_spacial": 8}
+
+
+def decode_samples(vae: Any, samples: torch.Tensor, *, tiled_vae: bool = True) -> torch.Tensor:
+    with torch.inference_mode():
+        if tiled_vae and hasattr(vae, "decode_tiled"):
+            return vae.decode_tiled(samples, **vae_tile_kwargs(vae, samples))
+        return vae.decode(samples)
+
+
+def vae_tile_kwargs(
+    vae: Any,
+    samples: torch.Tensor,
+    *,
+    target_tile_pixels: int = 512,
+    minimum_tile_pixels: int = 256,
+    overlap_pixels: int = 64,
+) -> dict[str, int]:
+    scale = _vae_spatial_scale(vae)
+    latent_width = int(samples.shape[-1])
+    latent_height = int(samples.shape[-2])
+    tile_x = _pixel_multiple_tile_to_latent(
+        latent_width,
+        scale=scale,
+        target_tile_pixels=target_tile_pixels,
+        minimum_tile_pixels=minimum_tile_pixels,
+    )
+    tile_y = _pixel_multiple_tile_to_latent(
+        latent_height,
+        scale=scale,
+        target_tile_pixels=target_tile_pixels,
+        minimum_tile_pixels=minimum_tile_pixels,
+    )
+    overlap = min(max(1, min(tile_x, tile_y) // 4), max(1, overlap_pixels // scale))
+    overlap = max(1, min(overlap, tile_x - 1, tile_y - 1))
+    return {"tile_x": tile_x, "tile_y": tile_y, "overlap": overlap}
+
+
+def _vae_spatial_scale(vae: Any) -> int:
+    scale = getattr(vae, "spacial_compression_decode", None)
+    if callable(scale):
+        try:
+            return max(1, int(scale()))
+        except Exception:
+            pass
+    return 8
+
+
+def _pixel_multiple_tile_to_latent(
+    latent_dim: int,
+    *,
+    scale: int,
+    target_tile_pixels: int,
+    minimum_tile_pixels: int,
+) -> int:
+    full_pixels = max(scale, latent_dim * scale)
+    desired_pixels = min(full_pixels, target_tile_pixels)
+    if full_pixels >= minimum_tile_pixels:
+        desired_pixels = max(minimum_tile_pixels, desired_pixels)
+    desired_pixels = max(64, (desired_pixels // 64) * 64)
+    return max(1, min(latent_dim, desired_pixels // scale))
 
 
 def save_image_tensor(tensor: torch.Tensor, path: str | Path) -> None:

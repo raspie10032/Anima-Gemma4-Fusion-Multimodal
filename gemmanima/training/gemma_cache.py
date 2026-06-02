@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from gemmanima.training.cache_manifest import build_cache_manifest_write_command
+
 
 DEFAULT_TARGET_DIR = Path(r"E:\anima_gemma_swap\cache_hiddenstage_planner_v2\targets")
 DEFAULT_GEMMA_DIR = Path(r"D:\anima_gemma_swap_cache_hiddenstage_planner_v2\gemma")
@@ -34,12 +36,33 @@ class GemmaCachePlan:
         return (
             f"$env:CUDA_VISIBLE_DEVICES='{self.gpu_index}'; "
             f"$env:GEMMA_EMBED_ON_GPU='{embed}'; "
-            f"\"{Path(python_exe)}\" \"{Path(script)}\" "
+            f"& \"{Path(python_exe)}\" \"{Path(script)}\" "
             f"--subset \"{Path(subset)}\" "
             f"--target-dir \"{Path(target_dir)}\" "
             f"--outdir \"{Path(outdir)}\" "
             f"--patterns \"{patterns}\" "
             f"--batch-size {self.batch_size} --resume"
+        )
+
+    def cache_manifest_path(self, *, outdir: str | Path = DEFAULT_GEMMA_DIR) -> Path:
+        return Path(outdir) / f"{self.name}_CACHE_BUILD_MANIFEST.json"
+
+    def cache_manifest_command(
+        self,
+        *,
+        subset: str | Path = DEFAULT_SUBSET,
+        outdir: str | Path = DEFAULT_GEMMA_DIR,
+    ) -> str:
+        return build_cache_manifest_write_command(
+            cache_kind="gemma_text_state",
+            sample_count=0,
+            source_manifest=subset,
+            output_dir=outdir,
+            manifest_out=self.cache_manifest_path(outdir=outdir),
+            success_count=0,
+            shape=(1, 16, 1536),
+            dtype="float32",
+            device=f"cuda:{self.gpu_index}" if self.embed_on_gpu else "cpu",
         )
 
     def to_json_dict(self) -> dict[str, Any]:
@@ -50,6 +73,8 @@ class GemmaCachePlan:
             "embed_on_gpu": self.embed_on_gpu,
             "batch_size": self.batch_size,
             "command": self.command(),
+            "cache_manifest_path": str(self.cache_manifest_path()),
+            "cache_manifest_command": self.cache_manifest_command(),
         }
 
 

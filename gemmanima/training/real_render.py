@@ -116,7 +116,6 @@ def audit_real_render_dependencies(config: EngineConfig | None = None) -> dict[s
         "script": DEFAULT_CHAT_RENDER_SCRIPT.exists(),
         "hiddenstage_bridge": resolved_config.models.hiddenstage_bridge.exists(),
         "anima_diffusion_model": resolved_config.models.anima_diffusion_model.exists(),
-        "anima_text_encoder": resolved_config.models.anima_text_encoder.exists(),
         "anima_vae": resolved_config.models.anima_vae.exists(),
     }
     return {

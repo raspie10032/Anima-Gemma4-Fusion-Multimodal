@@ -25,11 +25,12 @@ class BridgeTrainingPlan:
     prefetch_gb: float = 48.0
     save_every_shards: int = 25
     gpu_index: int = 0
+    limit_shards: int | None = None
 
     def command(self, *, python_exe: str | Path = DEFAULT_PYTHON, script: str | Path = DEFAULT_TRAIN_SCRIPT) -> str:
-        return (
+        command = (
             f"$env:CUDA_VISIBLE_DEVICES='{self.gpu_index}'; "
-            f"\"{Path(python_exe)}\" \"{Path(script)}\" "
+            f"& \"{Path(python_exe)}\" \"{Path(script)}\" "
             f"--targets \"{self.target_dir}\" "
             f"--gemma \"{self.gemma_dir}\" "
             f"--out \"{self.output}\" "
@@ -41,6 +42,9 @@ class BridgeTrainingPlan:
             f"--prefetch-gb {self.prefetch_gb} "
             f"--save-every-shards {self.save_every_shards}"
         )
+        if self.limit_shards is not None:
+            command += f" --limit-shards {self.limit_shards}"
+        return command
 
     def to_json_dict(self) -> dict[str, Any]:
         pairing = audit_cache_pairing(target_dir=self.target_dir, gemma_dir=self.gemma_dir)
@@ -56,6 +60,7 @@ class BridgeTrainingPlan:
             "prefetch_gb": self.prefetch_gb,
             "save_every_shards": self.save_every_shards,
             "gpu_index": self.gpu_index,
+            "limit_shards": self.limit_shards,
             "gpu_name": "RTX 4070 Ti SUPER",
             "cache_pairing": pairing,
             "ready": pairing["ready_for_bridge_training"],

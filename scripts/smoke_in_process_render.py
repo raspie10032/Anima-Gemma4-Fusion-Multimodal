@@ -7,9 +7,6 @@ import sys
 from pathlib import Path
 
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-os.environ["GEMMA_EMBED_ON_GPU"] = "1"
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -29,8 +26,12 @@ def main() -> int:
     parser.add_argument("--size", type=int, default=512)
     parser.add_argument("--cfg", type=float, default=4.5)
     parser.add_argument("--seed", type=int, default=19375672098)
+    parser.add_argument("--cuda-device", default=os.environ.get("CUDA_VISIBLE_DEVICES", "0"))
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda_device
+    os.environ["GEMMA_EMBED_ON_GPU"] = "1"
 
     return cli_main(
         [

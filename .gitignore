@@ -2,9 +2,16 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 runs/
+reports/
 .venv/
 venv/
 *.safetensors
 *.gguf
 *.pt
 *.ckpt
+re-learning/logs/
+re-learning/eval/*.jsonl
+re-learning/shortcuts/
+prototypes/**/*_stdout.txt
+prototypes/**/*_stderr.txt
+prototypes/**/*_prompt.txt

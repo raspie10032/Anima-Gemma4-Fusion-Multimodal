@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from pathlib import Path
 from uuid import uuid4
 
@@ -28,14 +29,20 @@ class InProcessAnimaRendererAdapter(AnimaRendererAdapter):
         hidden_provider: GemmaHiddenProvider | None = None,
         t5_provider: T5TokenizerProvider | None = None,
         sampler_runtime: AnimaSamplerRuntime | None = None,
+        image_id_factory: Callable[[], str] | None = None,
         unet_dtype: str = "fp8_e4m3fn_fast",
+        tiled_vae: bool = True,
+        comfy_args: tuple[str, ...] = (),
     ) -> None:
         super().__init__(output_root)
         self.config = config or EngineConfig()
         self.hidden_provider = hidden_provider
         self.t5_provider = t5_provider
         self.sampler_runtime = sampler_runtime
+        self.image_id_factory = image_id_factory or (lambda: uuid4().hex)
         self.unet_dtype = unet_dtype
+        self.tiled_vae = tiled_vae
+        self.comfy_args = comfy_args
 
     def generate(self, plan: GenerationPlan, conditioning: ConditioningBundle) -> RenderResult:
         conditioning.validate()
@@ -46,27 +53,27 @@ class InProcessAnimaRendererAdapter(AnimaRendererAdapter):
         assert self.sampler_runtime is not None
 
         seed = plan.seed if plan.seed is not None else self._stable_seed(plan.prompt)
-        image_id = uuid4().hex
+        image_id = self.image_id_factory()
         output_path = self.output_root / f"{image_id}.png"
         source_text = str(conditioning.metadata.get("hiddenstage_source_text") or plan.prompt)
         positive = self._conditioning(source_text, plan.prompt)
         negative = self._conditioning(NEGATIVE_PROMPT, NEGATIVE_PROMPT)
-        size = min(plan.width, plan.height)
         self.sampler_runtime.sample_to_file(
             SamplerRequest(
                 positive=positive,
                 negative=negative,
                 output_path=output_path,
                 seed=seed,
-                size=size,
+                width=plan.width,
+                height=plan.height,
                 steps=plan.steps,
                 cfg=plan.cfg,
+                sampler=plan.sampler,
+                scheduler=plan.scheduler,
+                tiled_vae=self.tiled_vae,
             )
         )
-        warnings = ()
-        if plan.width != plan.height:
-            warnings = (f"in-process renderer accepts square size only; used {size}",)
-        return RenderResult(image_id=image_id, output_path=output_path, seed=seed, warnings=warnings)
+        return RenderResult(image_id=image_id, output_path=output_path, seed=seed)
 
     def _conditioning(self, source_text: str, prompt: str) -> list[list[object]]:
         assert self.hidden_provider is not None
@@ -78,12 +85,13 @@ class InProcessAnimaRendererAdapter(AnimaRendererAdapter):
     def _ensure_runtime(self) -> None:
         os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
         os.environ.setdefault("GEMMA_EMBED_ON_GPU", "1")
+        if self.hidden_provider is None or self.t5_provider is None or self.sampler_runtime is None:
+            bootstrap_comfy(comfy_args=self.comfy_args)
         if self.hidden_provider is None:
             self.hidden_provider = GemmaHiddenProvider(GemmaTextRuntime())
         if self.t5_provider is None:
             self.t5_provider = build_t5_tokenizer_provider()
         if self.sampler_runtime is None:
-            bootstrap_comfy()
             model, vae = load_anima_model_vae(
                 diffusion_model_path=self.config.models.anima_diffusion_model,
                 vae_path=self.config.models.anima_vae,
