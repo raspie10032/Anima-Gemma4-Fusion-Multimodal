@@ -20,6 +20,7 @@ repository unless redistribution permission is explicitly documented.
 | Component | Source | License / notice |
 | --- | --- | --- |
 | Gemma Core base GGUF | Original Gemma/GGUF model page | Follow the current upstream Gemma/GGUF license, terms, required notices, and use restrictions |
+| Gemma-dependent logic and ideas | GemmAnima routing, harness, prompt-contract, hidden-state bridge, and adapter behavior built around Gemma | Treat as Gemma-dependent project material where applicable; do not use this project notice to bypass or relicense Gemma terms |
 | Anima diffusion model | `circlestone-labs/Anima` | CircleStone Labs Non-Commercial License according to the upstream model page |
 | Anima VAE file | `circlestone-labs/Anima` | Follow the upstream Anima page and the original VAE/model notices |
 | GemmAnima adapters/checkpoints | GemmAnima adapter bundle | Composite prototype notice; use is constrained by upstream Gemma, Anima, NVIDIA, and dataset/source restrictions |

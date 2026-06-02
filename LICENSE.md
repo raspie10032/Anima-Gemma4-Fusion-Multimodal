@@ -42,6 +42,14 @@ this source repository. Users should download those assets from the original
 model pages and comply with their current license, terms, distribution notices,
 and use restrictions.
 
+GemmAnima logic that is designed around Gemma behavior should also be treated as
+Gemma-dependent project material where applicable. This includes model-facing
+conversation harnesses, routing ideas, prompt and output-contract logic,
+LoRA/mmproj usage patterns, hidden-state bridge concepts, and adapter behavior
+that depends on Gemma or Gemma-derived runtime behavior. Do not treat those
+Gemma-dependent ideas or logic as separately relicensing or bypassing Gemma
+terms.
+
 ## Source Repository
 
 The source code in this repository is provided so the prototype can be inspected,

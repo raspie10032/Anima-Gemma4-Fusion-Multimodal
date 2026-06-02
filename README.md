@@ -206,6 +206,8 @@ permissive license.
 Use the most restrictive applicable terms across the loaded stack:
 
 - Gemma/GGUF base model terms and required redistribution notices.
+- Gemma-dependent routing, harness, prompt-contract, hidden-state bridge, and
+  adapter logic where it relies on Gemma or Gemma-derived behavior.
 - Anima base model terms, currently presented upstream as the CircleStone Labs
   Non-Commercial License.
 - NVIDIA Open Model License terms referenced by the Anima upstream page where
