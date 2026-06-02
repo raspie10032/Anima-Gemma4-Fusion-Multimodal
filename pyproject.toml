@@ -3,6 +3,7 @@ name = "gemmanima-engine"
 version = "0.1.0"
 description = "GemmAnima hidden-stage control backend scaffold"
 requires-python = ">=3.10"
+license = { file = "LICENSE.md" }
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

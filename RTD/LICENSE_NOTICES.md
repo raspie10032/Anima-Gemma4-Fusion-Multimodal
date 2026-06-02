@@ -19,10 +19,10 @@ repository unless redistribution permission is explicitly documented.
 
 | Component | Source | License / notice |
 | --- | --- | --- |
-| Gemma Core base GGUF | `mradermacher/gemma-4-E2B-it-heretic-ara-custom-GGUF` | `apache-2.0` according to the upstream Hugging Face model metadata |
+| Gemma Core base GGUF | Original Gemma/GGUF model page | Follow the current upstream Gemma/GGUF license, terms, required notices, and use restrictions |
 | Anima diffusion model | `circlestone-labs/Anima` | CircleStone Labs Non-Commercial License according to the upstream model page |
 | Anima VAE file | `circlestone-labs/Anima` | Follow the upstream Anima page and the original VAE/model notices |
-| GemmAnima adapters/checkpoints | GemmAnima adapter bundle | `other` until a final project license is selected; use is also constrained by upstream base model licenses |
+| GemmAnima adapters/checkpoints | GemmAnima adapter bundle | Composite prototype notice; use is constrained by upstream Gemma, Anima, NVIDIA, and dataset/source restrictions |
 
 The Anima model page states that Anima is licensed under the CircleStone Labs
 Non-Commercial License, is usable only for non-commercial purposes, and is a
@@ -40,9 +40,10 @@ loaded stack:
 4. NVIDIA license terms referenced by the Anima upstream page
 5. Dataset/source policy for any training data used to create the adapter
 
-Until a formal review is complete, treat the public adapter release as
-non-commercial/restricted-use only. Do not present it as production-ready,
-commercial-ready, or as relicensing any upstream base model.
+Because the current image path depends on Anima, treat the public adapter
+release as non-commercial/restricted-use only until a formal review and any
+required upstream permissions say otherwise. Do not present it as
+production-ready, commercial-ready, or as relicensing any upstream base model.
 
 ## Required Attribution in Model Card
 

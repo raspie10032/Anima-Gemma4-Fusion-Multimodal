@@ -198,19 +198,37 @@ Renderer choices:
 
 ## License And Model Notices
 
-This repository is source code plus configuration. Model assets are governed by
-their own upstream licenses and terms.
+GemmAnima is a composite prototype built around Gemma and Anima base-model
+families. The repository source, adapter bundle, bridge checkpoints, downloaded
+base weights, and generated runtime stack are not covered by one simple
+permissive license.
+
+Use the most restrictive applicable terms across the loaded stack:
+
+- Gemma/GGUF base model terms and required redistribution notices.
+- Anima base model terms, currently presented upstream as the CircleStone Labs
+  Non-Commercial License.
+- NVIDIA Open Model License terms referenced by the Anima upstream page where
+  applicable.
+- GemmAnima adapter/checkpoint notices.
+- Dataset/source restrictions for any adapter training data.
+
+Because the current image path depends on Anima, treat the v0.1.0 prototype and
+its adapter/checkpoint bundle as **non-commercial, non-production,
+restricted-use prototype material** unless a separate license review and any
+required upstream permissions say otherwise.
 
 Before redistributing model files or using the adapter bundle outside local
 testing, read:
 
+- `LICENSE.md`
 - `RTD/LICENSE_NOTICES.md`
 - the original Gemma/GGUF model page
 - the original Anima model page
 - the GemmAnima adapter bundle model card
 
-The v0.1.0 prototype should not be described as production-ready, commercially
-ready, promoted, or safety-evaluated.
+Do not describe the v0.1.0 prototype as production-ready, commercially ready,
+promoted, or safety-evaluated.
 
 ## Prototype Limitations
 
