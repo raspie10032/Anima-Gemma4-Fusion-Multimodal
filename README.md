@@ -158,6 +158,14 @@ sources and the GemmAnima adapter bundle.
 
 ### 6. Run Health And Tests
 
+On Windows, the batch helpers are the easiest first check:
+
+```bat
+RTD\scripts\health_check.bat
+```
+
+The direct Python commands are:
+
 ```powershell
 python -m gemmanima.cli model-download-plan --json
 python -m pytest -q
@@ -170,6 +178,14 @@ external model/runtime dependencies are present.
 
 After installation and asset setup, launch the local GUI:
 
+Windows batch launcher:
+
+```bat
+RTD\scripts\run_gui.bat
+```
+
+Direct Python command:
+
 ```powershell
 python -m gemmanima.cli gui-command
 ```
@@ -181,6 +197,14 @@ http://127.0.0.1:8765
 ```
 
 Smoke-test a dry-run generation without invoking the real renderer:
+
+Windows batch launcher:
+
+```bat
+RTD\scripts\smoke_dry_run.bat "draw a bright forest"
+```
+
+Direct Python command:
 
 ```powershell
 python -m gemmanima.cli run "draw a bright forest" --renderer dry-run --json

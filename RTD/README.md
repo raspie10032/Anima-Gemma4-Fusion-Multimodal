@@ -67,12 +67,16 @@ These profiles are prototype routing choices, not promoted production models.
 - `configs\models.yaml` - model path snapshot.
 - `configs\model_sources.json` - first-run download source snapshot.
 - `configs\renderer_profiles.yaml` - renderer profile snapshot.
-- `scripts\health_check.ps1` - quick preflight commands.
-- `scripts\run_gui.ps1` - starts the local GUI backend.
-- `scripts\smoke_dry_run.ps1` - dry-run generation smoke.
+- `scripts\health_check.bat` - quick Windows preflight commands.
+- `scripts\run_gui.bat` - starts the local GUI backend on Windows.
+- `scripts\smoke_dry_run.bat` - dry-run generation smoke on Windows.
+- `scripts\tag_image.bat` - TIPO vision tagger helper on Windows.
+- `scripts\health_check.ps1` - PowerShell preflight commands.
+- `scripts\run_gui.ps1` - PowerShell GUI backend launcher.
+- `scripts\smoke_dry_run.ps1` - PowerShell dry-run generation smoke.
 - `scripts\smoke_external_script.ps1` - legacy fallback render smoke, not the
   RTD default.
-- `scripts\tag_image.ps1` - TIPO vision tagger helper.
+- `scripts\tag_image.ps1` - PowerShell TIPO vision tagger helper.
 - `payloads\chat_general.json` - text chat request example.
 - `payloads\chat_image_generation.json` - chat-to-image request example.
 - `payloads\tag_image_template.json` - vision tag request template.
@@ -83,7 +87,7 @@ From the repo root:
 
 ```powershell
 python -m gemmanima.cli model-download-plan --json
-.\RTD\scripts\health_check.ps1
+.\RTD\scripts\health_check.bat
 ```
 
 Expected result:
@@ -127,7 +131,7 @@ models and adapter/checkpoint files.
 ## Start Local GUI
 
 ```powershell
-.\RTD\scripts\run_gui.ps1
+.\RTD\scripts\run_gui.bat
 ```
 
 Open:
@@ -139,7 +143,7 @@ http://127.0.0.1:8765
 ## Dry-Run Smoke
 
 ```powershell
-.\RTD\scripts\smoke_dry_run.ps1
+.\RTD\scripts\smoke_dry_run.bat
 ```
 
 This does not require real renderer assets.
@@ -156,7 +160,7 @@ RTX 4070 Ti SUPER is free and the paths in `asset_manifest.json` are valid.
 ## Tag One Image
 
 ```powershell
-.\RTD\scripts\tag_image.ps1 -ImagePath "D:\path\to\image.png"
+.\RTD\scripts\tag_image.bat "D:\path\to\image.png"
 ```
 
 The tagger should output canonical English Danbooru tags.
