@@ -6,6 +6,7 @@ GemmAnima is a prototype local-first chat and image orchestration app that
 connects three parts:
 
 - **Gemma Core** for resident chat, routing, tag, and intent planning.
+- **Vision Tagger** for local Danbooru image tagging and image-tag correlation.
 - **Anima Image Core** for local image generation.
 - **HiddenStage Bridge** for mapping Gemma-side planning into Anima-side
   conditioning.
@@ -50,7 +51,8 @@ copies of the same base model.
 
 | Group | Purpose |
 | --- | --- |
-| Gemma Core | Base GGUF plus LoRA/mmproj adapters for chat, planning, and vision tagging. |
+| Gemma Core | Base GGUF plus LoRA/mmproj adapters for chat, planning, and Gemma vision fallback. |
+| Vision Tagger | Local WD SwinV2 ONNX Danbooru tagger used as the default image-tag route. |
 | Anima Image Core | Diffusion model and VAE used by the local image renderer. |
 | HiddenStage Bridge | Prototype bridge/profile checkpoints used to translate Gemma-side intent into Anima conditioning. |
 
@@ -59,6 +61,7 @@ The expected v0.1.0 asset sources are:
 | Asset group | Source policy |
 | --- | --- |
 | Gemma base GGUF | Download from the original GGUF model page. |
+| WD SwinV2 tagger | Download from the original SmilingWolf model page. |
 | Anima diffusion and VAE | Download from the original Anima model page. |
 | GemmAnima adapters and bridge profiles | Download from the GemmAnima adapter bundle. |
 

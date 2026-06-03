@@ -4,17 +4,19 @@ import argparse
 import base64
 import json
 import mimetypes
+import queue
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from pathlib import PurePosixPath
-from typing import Any
+from typing import Any, Iterable
 from urllib.parse import unquote, urlparse
 from uuid import uuid4
 
 from gemmanima.api import handle_chat_payload, handle_health_payload
 from gemmanima.core.model_registry import ModelRegistry
+from gemmanima.core.runtime_env import configure_local_render_runtime
 from gemmanima.modules.tipo_runtime import initialize_tipo_text_runtime
 from gemmanima.ui import GUI_HTML
 
@@ -197,6 +199,74 @@ class ModelDownloadManager:
 MODEL_DOWNLOAD_MANAGER = ModelDownloadManager()
 
 
+def chat_stream_events(
+    payload: dict[str, Any],
+    *,
+    base_dir: str | Path = "runs",
+    handler=handle_chat_payload,
+) -> Iterable[dict[str, Any]]:
+    result_queue: queue.Queue[dict[str, Any]] = queue.Queue(maxsize=1)
+
+    def run_handler() -> None:
+        try:
+            result_queue.put({"type": "complete", "data": handler(payload, base_dir=base_dir)})
+        except Exception as exc:  # pragma: no cover - defensive stream boundary
+            result_queue.put({"type": "error", "error": str(exc)})
+
+    worker = threading.Thread(target=run_handler, daemon=True)
+    worker.start()
+    yield {
+        "type": "thinking",
+        "stage": "thinking",
+        "message": "Thinking...",
+    }
+    yield {
+        "type": "routing",
+        "stage": "routing",
+        "message": "Reading intent...",
+    }
+    yield {
+        "type": "working",
+        "stage": _initial_stream_stage(payload),
+        "message": _initial_stream_message(payload),
+    }
+    while worker.is_alive():
+        try:
+            final = result_queue.get(timeout=0.25)
+            break
+        except queue.Empty:
+            continue
+    else:
+        final = result_queue.get()
+    worker.join()
+    if final["type"] == "complete":
+        yield final
+    else:
+        yield {"type": "error", "stage": "error", "message": final["error"], "error": final["error"]}
+
+
+def _initial_stream_stage(payload: dict[str, Any]) -> str:
+    task = str(payload.get("task") or "auto").lower()
+    chat_mode = str(payload.get("chat_mode") or "").lower()
+    message = str(payload.get("message") or "").lower()
+    if task in {"generate", "generate_image"} or chat_mode == "image_generation_request":
+        return "generating"
+    if task in {"tag", "tag_image", "vision_tag", "image_tag"}:
+        return "tagging"
+    if any(word in message for word in ("draw", "render", "generate image", "create image", "이미지", "그림", "일러스트")):
+        return "generating"
+    return "chatting"
+
+
+def _initial_stream_message(payload: dict[str, Any]) -> str:
+    stage = _initial_stream_stage(payload)
+    if stage == "generating":
+        return "Preparing image generation..."
+    if stage == "tagging":
+        return "Reading the image..."
+    return "Composing a reply..."
+
+
 class GemmAnimaRequestHandler(BaseHTTPRequestHandler):
     base_dir = Path("runs")
     app_root = Path.cwd()
@@ -259,6 +329,13 @@ class GemmAnimaRequestHandler(BaseHTTPRequestHandler):
             except (ValueError, json.JSONDecodeError) as exc:
                 self._send_json(400, {"status": "failed", "error": str(exc)})
             return
+        if self.path == "/v1/chat/stream":
+            try:
+                payload = self._read_json()
+                self._send_event_stream(chat_stream_events(payload, base_dir=self.base_dir))
+            except json.JSONDecodeError:
+                self._send_json(400, {"error": "invalid json"})
+            return
         if self.path != "/v1/chat":
             self._send_json(404, {"error": "not found"})
             return
@@ -286,6 +363,15 @@ class GemmAnimaRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_event_stream(self, events: Iterable[dict[str, Any]]) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        for event in events:
+            self.wfile.write((json.dumps(event, ensure_ascii=False) + "\n").encode("utf-8"))
+            self.wfile.flush()
+
     def _send_html(self, status: int, html: str) -> None:
         body = html.encode("utf-8")
         self.send_response(status)
@@ -305,7 +391,10 @@ class GemmAnimaRequestHandler(BaseHTTPRequestHandler):
 
 
 def initialize_server_runtime() -> dict[str, Any]:
-    return {"tipo_text": initialize_tipo_text_runtime()}
+    return {
+        "runtime_env": configure_local_render_runtime(),
+        "tipo_text": initialize_tipo_text_runtime(),
+    }
 
 
 def main(argv: list[str] | None = None) -> int:

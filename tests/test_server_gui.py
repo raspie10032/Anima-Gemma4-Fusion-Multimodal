@@ -1,7 +1,10 @@
 from pathlib import Path
+import threading
+import time
 
 from gemmanima.server import (
     GemmAnimaRequestHandler,
+    chat_stream_events,
     initialize_server_runtime,
     load_user_settings,
     resolve_image_artifact,
@@ -16,6 +19,7 @@ def test_gui_html_contains_api_hooks() -> None:
     assert "GemmAnima" in GUI_HTML
     assert "/v1/health" in GUI_HTML
     assert "/v1/chat" in GUI_HTML
+    assert "/v1/chat/stream" in GUI_HTML
     assert "/v1/uploads" in GUI_HTML
     assert "/v1/models/download" in GUI_HTML
     assert "/v1/models/download/status" in GUI_HTML
@@ -97,7 +101,10 @@ def test_gui_html_contains_api_hooks() -> None:
     assert "runBrowserAutotest" in GUI_HTML
     assert "autotest-status" in GUI_HTML
     assert "renderPendingGeneration" in GUI_HTML
-    assert "const pendingGeneration = renderPendingGeneration(payload);" in GUI_HTML
+    assert "renderThinkingBubble" in GUI_HTML
+    assert "runStreamingRequest" in GUI_HTML
+    assert "const pending = renderThinkingBubble(payload);" in GUI_HTML
+    assert "fetch(\"/v1/chat/stream\"" in GUI_HTML
     assert "isLikelyGenerationRequest(message, payload) ? renderPendingGeneration(payload)" not in GUI_HTML
     assert "updatePendingGenerationStage" in GUI_HTML
     assert "generation-spinner" in GUI_HTML
@@ -148,6 +155,60 @@ def test_user_settings_sanitize_blank_chatbot_name(tmp_path: Path) -> None:
 def test_server_root_uses_gui_html() -> None:
     assert GemmAnimaRequestHandler.base_dir is not None
     assert "GemmAnima" in GUI_HTML
+
+
+def test_chat_stream_events_reports_thinking_before_complete(tmp_path: Path) -> None:
+    def fake_handler(payload, *, base_dir):
+        assert payload["message"] == "draw a forest girl"
+        assert base_dir == tmp_path
+        return {
+            "mode": "generate_image",
+            "status": "completed",
+            "message": "이미지를 만들었습니다.",
+            "output_path": "runs/images/sample.png",
+            "progress": ["route:image", "renderer:complete"],
+        }
+
+    events = list(
+        chat_stream_events(
+            {"task": "auto", "message": "draw a forest girl"},
+            base_dir=tmp_path,
+            handler=fake_handler,
+        )
+    )
+
+    assert [event["type"] for event in events] == ["thinking", "routing", "working", "complete"]
+    assert events[0]["stage"] == "thinking"
+    assert events[1]["stage"] == "routing"
+    assert events[2]["stage"] == "generating"
+    assert events[-1]["data"]["mode"] == "generate_image"
+
+
+def test_chat_stream_events_yields_before_handler_completes(tmp_path: Path) -> None:
+    started = threading.Event()
+    release = threading.Event()
+
+    def slow_handler(payload, *, base_dir):
+        started.set()
+        assert release.wait(timeout=2)
+        return {"mode": "chat", "status": "completed", "message": "done"}
+
+    events = chat_stream_events({"task": "auto", "message": "hello"}, base_dir=tmp_path, handler=slow_handler)
+
+    first = next(events)
+    assert started.wait(timeout=1)
+    assert first["type"] == "thinking"
+    assert next(events)["type"] == "routing"
+    assert next(events)["type"] == "working"
+    release.set()
+    deadline = time.time() + 2
+    final = None
+    while time.time() < deadline:
+        final = next(events)
+        if final["type"] == "complete":
+            break
+    assert final["type"] == "complete"
+    assert final["data"]["message"] == "done"
 
 
 def test_initialize_server_runtime_loads_text_runtime(monkeypatch) -> None:

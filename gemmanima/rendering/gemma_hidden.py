@@ -25,9 +25,9 @@ class GemmaHiddenConfig:
         )
     )
     prefix: str = DEFAULT_GEMMA_PREFIX
-    dtype: str = "bfloat16"
-    device: str = "cuda"
-    embed_on_gpu: bool = True
+    dtype: str = field(default_factory=lambda: os.environ.get("GEMMANIMA_GEMMA_HIDDEN_DTYPE", "bfloat16"))
+    device: str = field(default_factory=lambda: os.environ.get("GEMMANIMA_GEMMA_HIDDEN_DEVICE", "cuda"))
+    embed_on_gpu: bool = field(default_factory=lambda: _env_bool("GEMMA_EMBED_ON_GPU", True))
 
 
 class GemmaHiddenProvider:
@@ -145,3 +145,10 @@ def _torch_dtype(name: str) -> torch.dtype:
     if name == "float32":
         return torch.float32
     raise ValueError(f"unsupported Gemma dtype: {name}")
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on", "y"}

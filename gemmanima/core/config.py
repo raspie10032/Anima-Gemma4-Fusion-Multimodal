@@ -33,17 +33,25 @@ class ModelConfig:
         "anima_image_core",
         "qwen_image_vae.safetensors",
     )
+    wd_tagger_model: Path = model_path(
+        "vision_tagger",
+        "wd-swinv2-tagger-v3/model.onnx",
+    )
+    wd_tagger_tags: Path = model_path(
+        "vision_tagger",
+        "wd-swinv2-tagger-v3/selected_tags.csv",
+    )
     hiddenstage_bridge: Path = model_path(
         "hiddenstage_bridge",
         "kv_proj_hiddenstage_planner_v2.pt",
     )
     hiddenstage_bridge_balanced_pose: Path = model_path(
         "hiddenstage_bridge",
-        "kv_proj_text_delta_300k_from_epoch1_a0p35.pt",
+        "kv_proj_text_exact_v27_alpha35.pt",
     )
     hiddenstage_bridge_style_artist: Path = model_path(
         "hiddenstage_bridge",
-        "kv_proj_text_delta_300k_from_epoch1_a0p35.pt",
+        "kv_proj_text_exact_v27_alpha35.pt",
     )
     hiddenstage_bridge_text_exact: Path = model_path(
         "hiddenstage_bridge",
@@ -57,14 +65,14 @@ class ModelConfig:
                 label="Balanced Pose",
                 checkpoint=self.hiddenstage_bridge_balanced_pose,
                 role="general image generation, composition, and quality-first prompts",
-                notes="Default automatic image bridge; uses the 300k text-delta bridge because the 10k style bridge is undertrained.",
+                notes="Default automatic image bridge; uses the v27 text-exact bridge because live render evaluation produced coherent images while the 300k text-delta bridge collapsed into abstract textures.",
             ),
             "style_artist": BridgeProfile(
                 name="style_artist",
                 label="Style",
                 checkpoint=self.hiddenstage_bridge_style_artist,
                 role="style tags and rare surface-token prompt response",
-                notes="Routed to the same 300k text-delta bridge for v0.1 image quality stability; the 10k style-specialist bridge is not used by default.",
+                notes="Routed to the v27 text-exact bridge for v0.1 image quality stability; the 10k style-specialist and 300k text-delta bridges are retained but not used by default.",
             ),
             "text_exact": BridgeProfile(
                 name="text_exact",

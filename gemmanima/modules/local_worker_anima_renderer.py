@@ -121,6 +121,9 @@ def _config_to_json_dict(config: EngineConfig) -> dict[str, object]:
 
 
 def _default_worker_python() -> Path | str:
+    env_python = os.environ.get("GEMMANIMA_RENDER_PYTHON")
+    if env_python:
+        return Path(env_python)
     if DEFAULT_EMBEDDED_PYTHON.exists():
         return DEFAULT_EMBEDDED_PYTHON
     return sys.executable

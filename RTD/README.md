@@ -31,7 +31,7 @@ The launcher does not perform hidden package installation after bootstrap. Use
 runtime engines should be solved intentionally in the source/runtime
 environment, not by surprise install steps at GUI start.
 
-The runtime model set is split into three named parts:
+The runtime model set is split into four named parts:
 
 ### Gemma Core
 
@@ -60,6 +60,18 @@ artifacts.
 Anima text encoder weights are not part of the required standalone runtime. The
 in-process renderer keeps only tokenizer-format metadata for Anima conditioning.
 
+### Vision Tagger
+
+- WD SwinV2 ONNX model:
+  `%LOCALAPPDATA%\GemmAnima\models\vision_tagger\wd-swinv2-tagger-v3\model.onnx`
+- WD tag vocabulary:
+  `%LOCALAPPDATA%\GemmAnima\models\vision_tagger\wd-swinv2-tagger-v3\selected_tags.csv`
+
+The default `tag-image` route uses the local WD SwinV2 Danbooru tagger because
+live generated-image evaluation showed stronger scene, object, and pose tag
+correlation than the prototype Gemma vision LoRA. The Gemma vision LoRA/mmproj
+path remains available as a fallback and for future experiments.
+
 ### HiddenStage Bridge
 
 - Planner adapter:
@@ -73,11 +85,12 @@ Runtime bridge profiles:
 
 - `balanced_pose` - default automatic bridge for general image generation,
   composition, and quality-first prompts. In v0.1 it points to
-  `kv_proj_text_delta_300k_from_epoch1_a0p35.pt`.
+  `kv_proj_text_exact_v27_alpha35.pt` after live render evaluation showed the
+  300k text-delta bridge collapsing into abstract textures.
 - `style_artist` - selected automatically for style-oriented tags and
   rare surface-token prompts. In v0.1 it also points to
-  `kv_proj_text_delta_300k_from_epoch1_a0p35.pt` because the earlier 10k
-  style bridge is undertrained.
+  `kv_proj_text_exact_v27_alpha35.pt`; the earlier 10k style bridge and 300k
+  text-delta bridge are retained but are not default routes.
 - `text_exact` - selected automatically for signs, labels, logos, captions, or
   prompts that ask for readable text.
 - `legacy_mse` - original MSE-gated bridge kept for compatibility and explicit

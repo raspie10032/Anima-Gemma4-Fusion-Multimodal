@@ -16,11 +16,17 @@ from gemmanima.core.generation_presets import (
     scheduler_options,
 )
 from gemmanima.core.model_registry import ModelRegistry
+from gemmanima.core.runtime_env import configure_local_render_runtime
 from gemmanima.core.schemas import ChatTurn, GenerationPlan
 from gemmanima.modules.anima_renderer import AnimaRendererAdapter
 from gemmanima.modules.hiddenstage_exit import HiddenStageExit
 from gemmanima.modules.in_process_anima_renderer import InProcessAnimaRendererAdapter
 from gemmanima.modules.local_worker_anima_renderer import LocalWorkerAnimaRendererAdapter
+from gemmanima.modules.prompt_fallback import (
+    build_safe_generation_prompt,
+    build_safe_negative_prompt,
+    enrich_generation_prompt,
+)
 from gemmanima.modules.real_anima_renderer import ExternalAnimaRendererAdapter
 from gemmanima.modules.tipo_runtime import (
     TipoTextConfig,
@@ -33,6 +39,7 @@ from gemmanima.modules.tipo_runtime import (
     tipo_text_health,
     tipo_vision_health,
 )
+from gemmanima.modules.wd_tagger import run_wd_vision_tag, wd_tagger_health
 from gemmanima.rendering.backends import audit_renderer_backend
 
 
@@ -408,6 +415,9 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
                 if role and content:
                     conductor.history.append(ChatTurn(role=role, content=content))
             plan = apply_payload_generation_preset(generation_plan_from_chat_contract(contract), payload)
+            plan = GenerationPlan.from_dict(
+                {**plan.to_json_dict(), "prompt": enrich_generation_prompt(message, plan.prompt)}
+            )
             response = response_to_dict(conductor.handle_generation_plan(message, plan))
             response.update(
                 {
@@ -486,10 +496,11 @@ def handle_direct_generation_payload(
     if not force_plan:
         return response_to_dict(conductor.handle_user_message(message))
     reference_image_path = str(payload.get("reference_image_path") or payload.get("image_path") or "").strip()
+    fallback_prompt = build_safe_generation_prompt(message)
     plan = apply_payload_generation_preset(
         GenerationPlan(
-            prompt=message,
-            negative_prompt=str(payload.get("negative_prompt") or ""),
+            prompt=fallback_prompt,
+            negative_prompt=build_safe_negative_prompt(str(payload.get("negative_prompt") or "")),
             reference_image_path=reference_image_path,
         ),
         payload,
@@ -570,7 +581,11 @@ def handle_tag_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if not image_path:
         return {"error": "image_path is required for tag task", "status": "failed"}
     prompt = str(payload.get("message") or "").strip() or None
-    result = run_tipo_vision_tag(image_path=image_path, prompt=prompt)
+    result = run_wd_vision_tag(image_path=image_path)
+    tagger_name = "wd:vision"
+    if result.get("status") != "completed":
+        result = run_tipo_vision_tag(image_path=image_path, prompt=prompt)
+        tagger_name = "tipo:vision"
     status = result.get("status", "failed")
     if status != "completed":
         return {
@@ -578,7 +593,7 @@ def handle_tag_payload(payload: dict[str, Any]) -> dict[str, Any]:
             "status": "failed",
             "error": result.get("error", "tag generation failed"),
             "tags": result.get("tags", ""),
-            "progress": ["route:tag", "tipo:failed"],
+            "progress": ["route:tag", "wd:failed", "tipo:failed"],
         }
     tags = clean_vision_tags(str(result.get("tags") or ""))
     return {
@@ -592,10 +607,11 @@ def handle_tag_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "model": result.get("model"),
         "mmproj": result.get("mmproj"),
         "device": result.get("device"),
+        "tagger": result.get("tagger", tagger_name),
         "prompt": prompt,
         "manifest_path": None,
         "output_path": None,
-        "progress": ["route:tag", "tipo:vision"],
+        "progress": ["route:tag", tagger_name],
     }
 
 
@@ -628,11 +644,15 @@ def _looks_like_generation_clarification(text: str) -> bool:
 
 
 def handle_health_payload() -> dict[str, Any]:
+    runtime_env = configure_local_render_runtime()
     tipo_text = tipo_text_health()
     tipo_vision = tipo_vision_health()
+    wd_tagger = wd_tagger_health()
     issues = []
     issues.extend(tipo_text.get("issues", ()))
-    issues.extend(tipo_vision.get("issues", ()))
+    issues.extend(wd_tagger.get("issues", ()))
+    if not wd_tagger.get("ready"):
+        issues.extend(tipo_vision.get("issues", ()))
     return {
         "status": "ok",
         "ready": not issues,
@@ -645,10 +665,12 @@ def handle_health_payload() -> dict[str, Any]:
         "bridge_profiles": bridge_profile_options(),
         "hiddenstage_bridge": HiddenStageExit().audit_bridge().to_json_dict(),
         "renderers": audit_renderer_backend(),
+        "runtime_env": runtime_env,
         "generation_presets": generation_preset_options(),
         "resolution_presets": resolution_preset_options(),
         "samplers": sampler_options(),
         "schedulers": scheduler_options(),
         "tipo_text": tipo_text,
         "tipo_vision": tipo_vision,
+        "wd_tagger": wd_tagger,
     }

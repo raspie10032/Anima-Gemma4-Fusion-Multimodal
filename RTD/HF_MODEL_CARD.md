@@ -86,7 +86,7 @@ configuration.
 ### 1. Gemma Core
 
 The Gemma Core handles chat, language-harness behavior, canonical English
-Danbooru tag output, and vision tagger language behavior.
+Danbooru tag output, and the prototype Gemma vision fallback path.
 
 GemmAnima files:
 
@@ -107,6 +107,21 @@ Upstream license metadata for the GGUF page currently reports `apache-2.0`.
 The preferred runtime shape is an upstream base GGUF loaded with GemmAnima
 task-specific LoRA adapters through llama.cpp `--lora`. Older fully merged GGUFs
 are not the preferred packaging shape.
+
+### 1.5. Vision Tagger
+
+The default app `tag-image` route uses a local ONNX Danbooru tagger for stronger
+image-tag correlation on generated anime images. The Gemma vision LoRA remains
+available as a fallback and experimental path.
+
+External requirement:
+
+| File | How to obtain |
+| --- | --- |
+| `vision_tagger/wd-swinv2-tagger-v3/model.onnx` | Download from `SmilingWolf/wd-swinv2-tagger-v3`. |
+| `vision_tagger/wd-swinv2-tagger-v3/selected_tags.csv` | Download from `SmilingWolf/wd-swinv2-tagger-v3`. |
+
+The upstream Hugging Face model page reports `apache-2.0`.
 
 ### 2. Anima Image Core
 
@@ -153,15 +168,15 @@ GemmAnima files:
 | `hiddenstage-planner-adapter.safetensors` | Planner LoRA adapter |
 | `hiddenstage-planner-embed-vision.pt` | Planner vision embedding |
 | `kv_proj_hiddenstage_planner_v2.pt` | HiddenStage bridge checkpoint |
-| `kv_proj_text_delta_300k_from_epoch1_a0p35.pt` | Prototype default quality bridge profile used for normal image generation and style-tag prompts |
-| `kv_proj_text_exact_v27_alpha35.pt` | Prototype bridge profile for signs, labels, captions, and readable-text prompts |
+| `kv_proj_text_delta_300k_from_epoch1_a0p35.pt` | Retained experimental text-delta bridge; not a default image route after live render QA |
+| `kv_proj_text_exact_v27_alpha35.pt` | Prototype default quality bridge profile for normal image generation, style-tag prompts, signs, labels, captions, and readable-text prompts |
 
 The standalone app routes bridge profiles automatically:
 
 | Profile | Automatic use |
 | --- | --- |
-| `balanced_pose` | Normal image-generation prompts; routed to `kv_proj_text_delta_300k_from_epoch1_a0p35.pt` |
-| `style_artist` | Style-oriented tags and surface-token-heavy prompts; routed to `kv_proj_text_delta_300k_from_epoch1_a0p35.pt` |
+| `balanced_pose` | Normal image-generation prompts; routed to `kv_proj_text_exact_v27_alpha35.pt` |
+| `style_artist` | Style-oriented tags and surface-token-heavy prompts; routed to `kv_proj_text_exact_v27_alpha35.pt` |
 | `text_exact` | Prompts asking for readable text, signs, labels, captions, or logos |
 | `legacy_mse` | Compatibility baseline and explicit override |
 
@@ -184,7 +199,8 @@ Checksums and byte sizes for every uploaded file are recorded in
 
 | Directory | Files |
 | --- | --- |
-| `gemma_core/` | Text LoRA, vision/tagger LoRA, vision mmproj |
+| `gemma_core/` | Text LoRA, prototype Gemma vision/tagger LoRA, vision mmproj |
+| `vision_tagger/` | WD SwinV2 ONNX tagger and tag vocabulary downloaded from the original model page |
 | `hiddenstage_bridge/` | Planner adapter, planner vision embedding, legacy bridge, and three prototype bridge profiles |
 | repository root | Hugging Face model card, license notices, model source metadata, adapter manifest, version marker |
 
@@ -196,6 +212,7 @@ because original base weights are expected to come from their original pages:
 | Part | Approximate upload size |
 | --- | ---: |
 | Gemma Core adapters/projector | ~1.06 GB |
+| Vision Tagger external ONNX | not uploaded here |
 | HiddenStage Bridge | ~0.40 GB |
 | Anima Image Core base weights | not uploaded here |
 | Total uploaded here | ~1.46 GB |
@@ -206,9 +223,10 @@ units after the user downloads the external base weights separately:
 | Part | Approximate size |
 | --- | ---: |
 | Gemma Core | ~4.51 GB |
+| Vision Tagger | ~0.47 GB |
 | Anima Image Core | ~4.44 GB |
 | HiddenStage Bridge | ~0.40 GB |
-| Total | ~9.34 GB |
+| Total | ~9.81 GB |
 
 Exact size depends on final filenames and whether source adapters or
 compatibility reference models are included.
@@ -288,6 +306,10 @@ Still required before promotion:
 |   |-- text-adapter-model-f16.gguf
 |   |-- vision-tagger-adapter-model-f16.gguf
 |   `-- gemma4-tipo-vision.mmproj-f16.gguf
+|-- vision_tagger/
+|   `-- wd-swinv2-tagger-v3/
+|       |-- model.onnx
+|       `-- selected_tags.csv
 `-- hiddenstage_bridge/
     |-- hiddenstage-planner-adapter.safetensors
     |-- hiddenstage-planner-embed-vision.pt

@@ -22,6 +22,7 @@ from gemmanima.modules.tipo_runtime import (
 COMPONENT_LABELS: dict[str, str] = {
     "gemma_core": "Gemma Core",
     "anima_image_core": "Anima Image Core",
+    "vision_tagger": "Vision Tagger",
     "hiddenstage_bridge": "HiddenStage Bridge",
 }
 
@@ -87,6 +88,34 @@ class ModelRegistry:
                 adapter_source("gemma_core/gemma4-tipo-vision.mmproj-f16.gguf"),
             ),
             ModelAsset(
+                "vision_tagger.wd_swinv2_model",
+                "vision_tagger",
+                "local_danbooru_tagger",
+                models.wd_tagger_model,
+                hf_source(
+                    origin="original_model_page",
+                    repo_id="SmilingWolf/wd-swinv2-tagger-v3",
+                    filename="model.onnx",
+                    license_id="apache-2.0",
+                    license_note="The upstream Hugging Face model page reports Apache-2.0.",
+                    note="Local ONNX Danbooru tagger used as the default image-tag correlation evaluator.",
+                ),
+            ),
+            ModelAsset(
+                "vision_tagger.wd_swinv2_tags",
+                "vision_tagger",
+                "local_danbooru_tagger_tags",
+                models.wd_tagger_tags,
+                hf_source(
+                    origin="original_model_page",
+                    repo_id="SmilingWolf/wd-swinv2-tagger-v3",
+                    filename="selected_tags.csv",
+                    license_id="apache-2.0",
+                    license_note="The upstream Hugging Face model page reports Apache-2.0.",
+                    note="Tag vocabulary paired with wd-swinv2-tagger-v3/model.onnx.",
+                ),
+            ),
+            ModelAsset(
                 "anima_image_core.diffusion_model",
                 "anima_image_core",
                 "image_diffusion",
@@ -140,14 +169,14 @@ class ModelRegistry:
                 "hiddenstage_bridge",
                 "fusion_bridge_profile",
                 models.hiddenstage_bridge_balanced_pose,
-                adapter_source("hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt"),
+                adapter_source("hiddenstage_bridge/kv_proj_text_exact_v27_alpha35.pt"),
             ),
             ModelAsset(
                 "hiddenstage_bridge.bridge_style_artist",
                 "hiddenstage_bridge",
                 "fusion_bridge_profile",
                 models.hiddenstage_bridge_style_artist,
-                adapter_source("hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt"),
+                adapter_source("hiddenstage_bridge/kv_proj_text_exact_v27_alpha35.pt"),
             ),
             ModelAsset(
                 "hiddenstage_bridge.bridge_text_exact",

@@ -1044,12 +1044,60 @@ GUI_HTML = r"""<!doctype html>
         index = Math.min(index + 1, stages.length - 1);
         updatePendingGenerationStage({stageNode: stage}, stages[index]);
       }, 2400);
-      return {row, bubble, stageNode: stage, timer};
+      return {row, bubble, labelNode: label, stageNode: stage, timer};
+    }
+
+    function renderThinkingBubble(payload) {
+      const row = document.createElement("div");
+      row.className = "message-row assistant generation-pending-row";
+      const avatar = document.createElement("div");
+      avatar.className = "mini-avatar";
+      avatar.textContent = botInitial(loadBotName());
+      const stack = document.createElement("div");
+      const bubble = document.createElement("div");
+      bubble.className = "bubble generation-pending";
+      const line = document.createElement("div");
+      line.className = "generation-loading-line";
+      const spinner = document.createElement("span");
+      spinner.className = "generation-spinner";
+      spinner.setAttribute("aria-hidden", "true");
+      const label = document.createElement("span");
+      label.textContent = "생각 중...";
+      line.appendChild(spinner);
+      line.appendChild(label);
+      const stage = document.createElement("div");
+      stage.className = "generation-stage";
+      stage.textContent = "의도 판단 중";
+      bubble.appendChild(line);
+      bubble.appendChild(stage);
+      const metaNode = document.createElement("div");
+      metaNode.className = "meta";
+      metaNode.textContent = nowLabel();
+      stack.appendChild(bubble);
+      stack.appendChild(metaNode);
+      row.appendChild(avatar);
+      row.appendChild(stack);
+      $("chat-log").appendChild(row);
+      $("chat-log").scrollTop = $("chat-log").scrollHeight;
+      return {row, bubble, labelNode: label, stageNode: stage, timer: null};
+    }
+
+    function updatePendingFromStreamEvent(pending, event) {
+      if (!pending || !event) return;
+      const stage = String(event.stage || "");
+      if (event.message && pending.stageNode) pending.stageNode.textContent = event.message;
+      if (!pending.labelNode) return;
+      if (stage === "thinking") pending.labelNode.textContent = "생각 중...";
+      else if (stage === "routing") pending.labelNode.textContent = "판단 중...";
+      else if (stage === "generating") pending.labelNode.textContent = "이미지 생성 중...";
+      else if (stage === "tagging") pending.labelNode.textContent = "이미지 분석 중...";
+      else if (stage === "chatting") pending.labelNode.textContent = "답변 작성 중...";
+      else if (stage === "error") pending.labelNode.textContent = "오류";
     }
 
     function replacePendingGeneration(pending, data) {
       if (!pending) return null;
-      clearInterval(pending.timer);
+      if (pending.timer) clearInterval(pending.timer);
       pending.bubble.className = "bubble";
       pending.bubble.replaceChildren();
       pending.row.className = `message-row ${data.error ? "system" : "assistant"}`;
@@ -1117,6 +1165,45 @@ GUI_HTML = r"""<!doctype html>
       addBubble("system", `${file.name} 첨부 완료`);
     }
 
+    async function runStreamingRequest(payload, pending) {
+      const res = await fetch("/v1/chat/stream", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok || !res.body) {
+        const fallback = await fetch("/v1/chat", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(payload)
+        });
+        return await fallback.json();
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const {value, done} = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, {stream: true});
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line);
+          if (event.type === "complete") return event.data;
+          if (event.type === "error") throw new Error(event.error || event.message || "stream failed");
+          updatePendingFromStreamEvent(pending, event);
+        }
+      }
+      if (buffer.trim()) {
+        const event = JSON.parse(buffer);
+        if (event.type === "complete") return event.data;
+        if (event.type === "error") throw new Error(event.error || event.message || "stream failed");
+      }
+      throw new Error("stream ended without a result");
+    }
+
     function handleDroppedFiles(files) {
       const file = Array.from(files || []).find((item) => item.type && item.type.startsWith("image/"));
       if (!file) {
@@ -1178,23 +1265,18 @@ GUI_HTML = r"""<!doctype html>
       if (!forcedTask && shouldTagAttachedImage(message)) payload.task = "tag";
       const forcedChatMode = $("force_chat_mode").value;
       if (forcedChatMode) payload.chat_mode = forcedChatMode;
-      const pendingGeneration = renderPendingGeneration(payload);
+      const pending = renderThinkingBubble(payload);
       try {
-        const res = await fetch("/v1/chat", {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
+        const data = await runStreamingRequest(payload, pending);
         conversationHistory.push({role: "user", content: displayText});
         if (data.message) conversationHistory.push({role: "assistant", content: data.message});
-        renderResult(data, pendingGeneration);
+        renderResult(data, pending);
         $("message").value = "";
         autoGrowMessageBox();
         await refreshHealth();
       } catch (err) {
         $("result").textContent = String(err);
-        const targetBubble = replacePendingGeneration(pendingGeneration, {error: String(err)});
+        const targetBubble = replacePendingGeneration(pending, {error: String(err)});
         if (targetBubble) addAssistantResponse({error: String(err)}, targetBubble);
         else addBubble("system", String(err));
       } finally {

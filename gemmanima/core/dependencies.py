@@ -78,6 +78,13 @@ DEPENDENCIES: tuple[RuntimeDependency, ...] = (
         "Bundle with image runtime utilities; not installed dynamically.",
     ),
     RuntimeDependency(
+        "ONNX Runtime",
+        "onnxruntime",
+        "runtime_engine",
+        ("default image tagger", "image-tag correlation evaluation"),
+        "Bundle with the app/runtime environment. GemmAnima must not pip-install it at launch.",
+    ),
+    RuntimeDependency(
         "safetensors",
         "safetensors",
         "runtime_engine",

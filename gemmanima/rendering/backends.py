@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -81,7 +82,7 @@ def _in_process_profile(config: EngineConfig | None = None) -> RendererBackendPr
     t5_env = t5_tokenizer_environment(load_tokenizer=False)
     sampler_env = anima_sampler_environment()
     checks = {
-        "embedded_python": DEFAULT_EMBEDDED_PYTHON.exists(),
+        "embedded_python": _render_python_path().exists(),
         "comfy_bootstrap_module": True,
         "comfy_root": bootstrap.comfy_root.exists(),
         "embedded_site_packages": bootstrap.embedded_site_packages.exists(),
@@ -145,3 +146,7 @@ def _local_worker_profile(config: EngineConfig | None = None) -> RendererBackend
 
 def _can_import_from_comfy_root(comfy_root: Path) -> bool:
     return (comfy_root / "comfy").is_dir() and (comfy_root / "nodes.py").exists()
+
+
+def _render_python_path() -> Path:
+    return Path(os.environ.get("GEMMANIMA_RENDER_PYTHON", str(DEFAULT_EMBEDDED_PYTHON)))

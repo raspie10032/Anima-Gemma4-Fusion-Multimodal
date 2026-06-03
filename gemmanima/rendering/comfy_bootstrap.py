@@ -69,6 +69,7 @@ def bootstrap_comfy(
         sys.path.insert(0, str(project_core))
     _install_native_attention_import_blocker()
     _ensure_torchvision_nms_operator()
+    _patch_comfy_model_patcher_destructor()
 
     model_folders = {name: resolved.models_root / name for name in resolved.model_folders}
     if not import_folder_paths:
@@ -138,3 +139,26 @@ def _install_native_attention_import_blocker() -> None:
     if any(isinstance(finder, NativeAttentionImportBlocker) for finder in sys.meta_path):
         return
     sys.meta_path.insert(0, NativeAttentionImportBlocker())
+
+
+def _patch_comfy_model_patcher_destructor() -> None:
+    try:
+        import comfy.model_patcher
+    except Exception:
+        return
+    model_patcher = comfy.model_patcher.ModelPatcher
+    if getattr(model_patcher, "_gemmanima_safe_del", False):
+        return
+    original_del = getattr(model_patcher, "__del__", None)
+    if original_del is None:
+        return
+
+    def safe_del(self) -> None:  # type: ignore[no-untyped-def]
+        try:
+            original_del(self)
+        except AttributeError as exc:
+            if "ON_DETACH" not in str(exc):
+                raise
+
+    model_patcher.__del__ = safe_del
+    model_patcher._gemmanima_safe_del = True

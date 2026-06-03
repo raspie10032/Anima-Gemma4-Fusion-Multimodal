@@ -3,6 +3,7 @@ from pathlib import Path
 
 from gemmanima.api import build_config, handle_chat_payload, handle_health_payload, select_bridge_profile_name
 from gemmanima.modules.gemma_planner import GemmaPlannerAdapter
+from gemmanima.modules.prompt_fallback import enrich_generation_prompt
 
 
 def test_handle_chat_payload_requires_message(tmp_path) -> None:
@@ -10,6 +11,18 @@ def test_handle_chat_payload_requires_message(tmp_path) -> None:
 
     assert result["status"] == "failed"
     assert "message is required" in result["error"]
+
+
+def test_enrich_generation_prompt_keeps_korean_request_details() -> None:
+    prompt = enrich_generation_prompt(
+        "파란 재킷 입고 운동화 신은 캐릭터가 역동적으로 점프하는 장면",
+        "1girl, blue jacket, looking at viewer",
+    )
+
+    assert "blue jacket" in prompt
+    assert "jumping" in prompt
+    assert "dynamic pose" in prompt
+    assert "sneakers" in prompt
 
 
 def test_handle_chat_payload_routes_tag_task_without_generation(tmp_path, monkeypatch) -> None:
@@ -33,6 +46,7 @@ def test_handle_chat_payload_routes_tag_task_without_generation(tmp_path, monkey
 
     image_path_obj = image_path
     monkeypatch.setattr("gemmanima.api.run_tipo_vision_tag", fake_tag_image)
+    monkeypatch.setattr("gemmanima.api.run_wd_vision_tag", lambda **kwargs: {"status": "failed", "error": "missing wd"})
 
     result = handle_chat_payload(
         {
@@ -70,6 +84,7 @@ def test_handle_chat_payload_cleans_tag_output_at_api_boundary(tmp_path, monkeyp
         }
 
     monkeypatch.setattr("gemmanima.api.run_tipo_vision_tag", fake_tag_image)
+    monkeypatch.setattr("gemmanima.api.run_wd_vision_tag", lambda **kwargs: {"status": "failed", "error": "missing wd"})
 
     result = handle_chat_payload(
         {"task": "tag", "message": "tag this", "image_path": str(image_path)},
@@ -80,6 +95,37 @@ def test_handle_chat_payload_cleans_tag_output_at_api_boundary(tmp_path, monkeyp
     assert len(tags) == 24
     assert tags[:4] == ["1girl", "solo", "tag_1", "tag_2"]
     assert not any("<start_of_turn>" in tag or "<end_of_turn>" in tag for tag in tags)
+
+
+def test_handle_chat_payload_tag_task_prefers_wd_tagger(tmp_path, monkeypatch) -> None:
+    image_path = tmp_path / "input.png"
+    image_path.write_bytes(b"fake image")
+
+    def fail_if_called(**kwargs):
+        raise AssertionError("Gemma vision fallback should not run when WD succeeds")
+
+    monkeypatch.setattr("gemmanima.api.run_tipo_vision_tag", fail_if_called)
+    monkeypatch.setattr(
+        "gemmanima.api.run_wd_vision_tag",
+        lambda **kwargs: {
+            "status": "completed",
+            "tags": "1girl, solo, window, rain",
+            "raw": "1girl:0.9, solo:0.8, window:0.7, rain:0.6",
+            "seconds": 0.1,
+            "model": "wd.onnx",
+            "tagger": "wd-swinv2-tagger-v3",
+        },
+    )
+
+    result = handle_chat_payload(
+        {"task": "tag", "message": "tag this", "image_path": str(image_path)},
+        base_dir=tmp_path,
+    )
+
+    assert result["status"] == "completed"
+    assert result["tags"] == "1girl, solo, window, rain"
+    assert result["tagger"] == "wd-swinv2-tagger-v3"
+    assert result["progress"] == ["route:tag", "wd:vision"]
 
 
 def test_handle_chat_payload_tag_task_requires_image_path(tmp_path) -> None:
@@ -603,6 +649,51 @@ def test_handle_chat_payload_auto_image_classifier_falls_back_when_contract_call
     assert "contract:fallback" in result["progress"]
 
 
+def test_handle_chat_payload_korean_image_contract_fallback_uses_english_generation_prompt(
+    tmp_path, monkeypatch
+) -> None:
+    def fake_text_chat(**kwargs):
+        if kwargs["chat_mode"] == "intent_classification":
+            return {
+                "status": "completed",
+                "message": '{"intent":"generate_image","confidence":0.98,"reason":"draw request"}',
+                "raw": '{"intent":"generate_image","confidence":0.98,"reason":"draw request"}',
+                "stderr_tail": "",
+                "seconds": 0.05,
+                "model": "chat.gguf",
+                "device": "CUDA0",
+                "language": kwargs["language"],
+                "chat_mode": kwargs["chat_mode"],
+                "output_contract": "route_intent_json",
+            }
+        return {
+            "status": "failed",
+            "error": "image generation contract is empty",
+            "error_code": "chat_generation_failed",
+            "seconds": 0.1,
+            "chat_mode": kwargs["chat_mode"],
+            "output_contract": "image_generation_json",
+        }
+
+    monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fake_text_chat)
+    result = handle_chat_payload(
+        {
+            "task": "auto",
+            "message": "비 오는 밤, 카페 창가에 앉아 있는 캐릭터를 따뜻한 분위기로 그려줘.",
+            "renderer": "dry-run",
+        },
+        base_dir=tmp_path,
+    )
+
+    assert result["mode"] == "generate_image"
+    assert result["status"] == "completed"
+    assert "contract:fallback" in result["progress"]
+    assert result["plan"]["prompt"] != "비 오는 밤, 카페 창가에 앉아 있는 캐릭터를 따뜻한 분위기로 그려줘."
+    assert "cafe" in result["plan"]["prompt"]
+    assert "rain" in result["plan"]["prompt"]
+    assert "window" in result["plan"]["prompt"]
+
+
 def test_handle_chat_payload_accepts_generation_overrides(tmp_path) -> None:
     result = handle_chat_payload(
         {
@@ -692,6 +783,14 @@ def test_build_config_accepts_explicit_bridge_profile() -> None:
     config = build_config({"bridge_profile": "style_artist"})
 
     assert config.models.hiddenstage_bridge == config.models.hiddenstage_bridge_style_artist
+
+
+def test_build_config_routes_general_and_style_images_to_current_quality_bridge() -> None:
+    config = build_config({})
+
+    assert config.models.hiddenstage_bridge_balanced_pose == config.models.hiddenstage_bridge_text_exact
+    assert config.models.hiddenstage_bridge_style_artist == config.models.hiddenstage_bridge_text_exact
+    assert config.models.hiddenstage_bridge == config.models.hiddenstage_bridge_text_exact
 
 
 def test_build_config_routes_style_hints_to_style_bridge() -> None:
@@ -888,3 +987,29 @@ def test_handle_health_payload_reports_models() -> None:
     assert "anima_image_core.text_encoder" not in result["models"]
     assert isinstance(result["hiddenstage_bridge"]["passed_mse_gate"], bool)
     assert "in_process" in result["renderers"]
+
+
+def test_handle_health_payload_uses_wd_tagger_as_blocking_vision_gate(monkeypatch) -> None:
+    monkeypatch.setattr("gemmanima.api.tipo_text_health", lambda: {"ready": True, "issues": []})
+    monkeypatch.setattr(
+        "gemmanima.api.tipo_vision_health",
+        lambda: {
+            "ready": False,
+            "issues": [{"code": "missing_tipo_vision_cli", "scope": "tipo_vision"}],
+        },
+    )
+    monkeypatch.setattr(
+        "gemmanima.api.wd_tagger_health",
+        lambda: {
+            "ready": True,
+            "issues": [],
+            "tagger": "wd-swinv2-tagger-v3",
+        },
+    )
+
+    result = handle_health_payload()
+
+    assert result["ready"] is True
+    assert result["preflight"]["blocking"] is False
+    assert result["preflight"]["issues"] == []
+    assert result["wd_tagger"]["tagger"] == "wd-swinv2-tagger-v3"

@@ -41,6 +41,19 @@
         }
       }
     },
+    "vision_tagger": {
+      "description": "Local ONNX Danbooru tagger used for image-tag correlation and app tag-image routing.",
+      "assets": {
+        "wd_swinv2_model": {
+          "relative_path": "vision_tagger/wd-swinv2-tagger-v3/model.onnx",
+          "source": "SmilingWolf/wd-swinv2-tagger-v3"
+        },
+        "wd_swinv2_tags": {
+          "relative_path": "vision_tagger/wd-swinv2-tagger-v3/selected_tags.csv",
+          "source": "SmilingWolf/wd-swinv2-tagger-v3"
+        }
+      }
+    },
     "hiddenstage_bridge": {
       "description": "GemmAnima planner, embedding, and bridge profile checkpoints.",
       "assets": {
@@ -57,11 +70,11 @@
           "source": "raspie/gemmanima-adapter-bundle"
         },
         "balanced_pose": {
-          "relative_path": "hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt",
+          "relative_path": "hiddenstage_bridge/kv_proj_text_exact_v27_alpha35.pt",
           "source": "raspie/gemmanima-adapter-bundle"
         },
         "style_artist": {
-          "relative_path": "hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt",
+          "relative_path": "hiddenstage_bridge/kv_proj_text_exact_v27_alpha35.pt",
           "source": "raspie/gemmanima-adapter-bundle"
         },
         "text_exact": {

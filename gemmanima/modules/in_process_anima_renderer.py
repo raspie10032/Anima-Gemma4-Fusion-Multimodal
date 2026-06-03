@@ -87,10 +87,6 @@ class InProcessAnimaRendererAdapter(AnimaRendererAdapter):
         os.environ.setdefault("GEMMA_EMBED_ON_GPU", "1")
         if self.hidden_provider is None or self.t5_provider is None or self.sampler_runtime is None:
             bootstrap_comfy(comfy_args=self.comfy_args)
-        if self.hidden_provider is None:
-            self.hidden_provider = GemmaHiddenProvider(GemmaTextRuntime())
-        if self.t5_provider is None:
-            self.t5_provider = build_t5_tokenizer_provider()
         if self.sampler_runtime is None:
             model, vae = load_anima_model_vae(
                 diffusion_model_path=self.config.models.anima_diffusion_model,
@@ -104,3 +100,7 @@ class InProcessAnimaRendererAdapter(AnimaRendererAdapter):
                 adapter_dtype=adapter_dtype_for_unet(model, self.unet_dtype),
             )
             self.sampler_runtime = AnimaSamplerRuntime(model=model, vae=vae, sampler=build_comfy_sampler())
+        if self.hidden_provider is None:
+            self.hidden_provider = GemmaHiddenProvider(GemmaTextRuntime())
+        if self.t5_provider is None:
+            self.t5_provider = build_t5_tokenizer_provider()

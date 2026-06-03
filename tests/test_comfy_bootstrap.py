@@ -2,10 +2,18 @@ import sys
 from pathlib import Path
 
 from gemmanima.core.model_paths import default_model_root
+from gemmanima.rendering import comfy_bootstrap
 from gemmanima.rendering.comfy_bootstrap import ComfyBootstrapConfig, bootstrap_comfy
 
 
-def test_comfy_bootstrap_config_uses_portable_defaults() -> None:
+def test_comfy_bootstrap_config_uses_portable_defaults(monkeypatch) -> None:
+    for key in (
+        "GEMMANIMA_COMFY_ROOT",
+        "GEMMANIMA_COMFY_MODELS_ROOT",
+        "GEMMANIMA_COMFY_SITE_PACKAGES",
+        "GEMMANIMA_SWAP_PROJECT_ROOT",
+    ):
+        monkeypatch.delenv(key, raising=False)
     config = ComfyBootstrapConfig()
 
     assert config.comfy_root == Path("ComfyUI")
@@ -31,7 +39,10 @@ def test_bootstrap_comfy_preserves_argv_when_import_is_disabled(monkeypatch, tmp
     assert result.project_core == tmp_path / "swap" / "scripts" / "core"
 
 
-def test_bootstrap_comfy_blocks_incompatible_native_attention_imports() -> None:
+def test_bootstrap_comfy_blocks_incompatible_native_attention_imports(monkeypatch) -> None:
+    monkeypatch.setattr(comfy_bootstrap, "_ensure_torchvision_nms_operator", lambda: None)
+    monkeypatch.setattr(comfy_bootstrap, "_patch_comfy_model_patcher_destructor", lambda: None)
+
     bootstrap_comfy(import_folder_paths=False)
 
     assert any(

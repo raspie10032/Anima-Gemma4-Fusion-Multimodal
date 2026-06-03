@@ -12,13 +12,19 @@ anima_image_core:
   diffusion_model: "${GEMMANIMA_MODEL_ROOT}/anima_image_core/anima-base-v1.0.safetensors"
   vae: "${GEMMANIMA_MODEL_ROOT}/anima_image_core/qwen_image_vae.safetensors"
 
+vision_tagger:
+  default_backend: wd_swinv2_tagger_v3
+  wd_swinv2_model: "${GEMMANIMA_MODEL_ROOT}/vision_tagger/wd-swinv2-tagger-v3/model.onnx"
+  wd_swinv2_tags: "${GEMMANIMA_MODEL_ROOT}/vision_tagger/wd-swinv2-tagger-v3/selected_tags.csv"
+  gemma_vision_fallback: "${GEMMANIMA_MODEL_ROOT}/gemma_core/vision-tagger-adapter-model-f16.gguf"
+
 hiddenstage_bridge:
   planner_adapter: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/hiddenstage-planner-adapter.safetensors"
   planner_vision_embedding: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/hiddenstage-planner-embed-vision.pt"
   bridge_checkpoint: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_hiddenstage_planner_v2.pt"
   bridge_profiles:
-    balanced_pose: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt"
-    style_artist: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt"
+    balanced_pose: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_text_exact_v27_alpha35.pt"
+    style_artist: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_text_exact_v27_alpha35.pt"
     text_exact: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_text_exact_v27_alpha35.pt"
     legacy_mse: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_hiddenstage_planner_v2.pt"
   default_runtime_profile: balanced_pose
