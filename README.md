@@ -1,5 +1,7 @@
 # GemmAnima Engine
 
+[Korean README](README.ko.md) | [Hugging Face adapter bundle](https://huggingface.co/raspie/gemmanima-adapter-bundle)
+
 GemmAnima is a prototype local-first chat and image orchestration app that
 connects three parts:
 

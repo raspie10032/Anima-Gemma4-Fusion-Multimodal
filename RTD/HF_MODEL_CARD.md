@@ -16,6 +16,8 @@ license: other
 
 # GemmAnima Prototype Adapter Bundle
 
+[Korean model card](HF_MODEL_CARD.ko.md) | [GitHub app source](https://github.com/raspie10032/Anima-Gemma4-Fusion-Multimodal)
+
 ## Prototype Notice
 
 This is a **v0.1 prototype adapter bundle** for the standalone GemmAnima app.

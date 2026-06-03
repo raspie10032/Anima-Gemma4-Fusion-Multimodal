@@ -84,6 +84,7 @@ These profiles are prototype routing choices, not promoted production models.
 - `GITHUB_README.md` - GitHub-facing documentation boundary.
 - `LICENSE_NOTICES.md` - source license and attribution checklist.
 - `HF_MODEL_CARD.md` - Hugging Face-facing adapter bundle model card.
+- `HF_MODEL_CARD.ko.md` - Korean Hugging Face-facing model card.
 - `configs\models.yaml` - model path snapshot.
 - `configs\model_sources.json` - first-run download source snapshot.
 - `configs\renderer_profiles.yaml` - renderer profile snapshot.
