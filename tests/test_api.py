@@ -227,6 +227,63 @@ def test_handle_chat_payload_auto_uses_model_intent_for_tag_then_generate(tmp_pa
     assert [call["chat_mode"] for call in calls] == ["intent_classification"]
 
 
+def test_handle_chat_payload_auto_uses_model_pre_action_before_generation(tmp_path, monkeypatch) -> None:
+    image_path = tmp_path / "input.png"
+    image_path.write_bytes(b"fake image")
+    calls = []
+
+    def fake_text_chat(**kwargs):
+        calls.append(kwargs)
+        assert kwargs["chat_mode"] == "intent_classification"
+        assert "attached_image: true" in kwargs["message"]
+        assert "attached_image_path:" in kwargs["message"]
+        return {
+            "status": "completed",
+            "message": (
+                '{"intent":"generate_image","pre_action":"vision_tag",'
+                '"confidence":0.91,"reason":"generate from extracted tags"}'
+            ),
+            "raw": (
+                '{"intent":"generate_image","pre_action":"vision_tag",'
+                '"confidence":0.91,"reason":"generate from extracted tags"}'
+            ),
+            "seconds": 0.05,
+            "model": "chat.gguf",
+            "device": "CUDA0",
+            "chat_mode": "intent_classification",
+            "output_contract": "route_intent_json",
+        }
+
+    monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fake_text_chat)
+    monkeypatch.setattr(
+        "gemmanima.api.run_wd_vision_tag",
+        lambda **kwargs: {
+            "status": "completed",
+            "tags": "1girl, solo, white dress, flower field",
+            "raw": "",
+            "seconds": 0.1,
+            "tagger": "wd-swinv2-tagger-v3",
+        },
+    )
+
+    result = handle_chat_payload(
+        {
+            "task": "auto",
+            "message": "이미지를 바탕으로 태그 뽑아서 생성까지 해줘",
+            "reference_image_path": str(image_path),
+            "renderer": "dry-run",
+        },
+        base_dir=tmp_path,
+    )
+
+    assert result["mode"] == "generate_image"
+    assert result["status"] == "completed"
+    assert result["auto_route"]["intent"] == "tag_then_generate"
+    assert result["auto_route"]["pre_action"] == "vision_tag"
+    assert result["tags_used"] == "1girl, solo, white dress, flower field"
+    assert [call["chat_mode"] for call in calls] == ["intent_classification"]
+
+
 def test_handle_chat_payload_tags_attached_image_before_generation_when_requested(tmp_path, monkeypatch) -> None:
     image_path = tmp_path / "input.png"
     image_path.write_bytes(b"fake image")

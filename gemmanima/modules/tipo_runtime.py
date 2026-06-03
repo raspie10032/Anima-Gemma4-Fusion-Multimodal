@@ -1255,9 +1255,12 @@ def build_chat_contract_harness(chat_mode: str | None) -> str:
         return (
             common
             + "Return exactly one compact JSON object with these keys: "
-            + '"intent", "confidence", "reason".\n'
+            + '"intent", "pre_action", "confidence", "reason".\n'
             + '"intent" must be one of "chat", "generate_image", '
             + '"tag_image", or "tag_then_generate".\n'
+            + '"pre_action" must be "" or "vision_tag". Use "vision_tag" only '
+            + "when the attached image must be read/tagged before the final "
+            + "answer or generation.\n"
             + "Choose generate_image only when the user is asking the app to "
             + "create, draw, render, or modify an image now.\n"
             + "Choose chat for meta discussion about images, image generation, "
@@ -1267,10 +1270,16 @@ def build_chat_contract_harness(chat_mode: str | None) -> str:
             + "describe an attached image.\n"
             + "Choose tag_then_generate when the user asks to tag, caption, or "
             + "analyze an attached image first and then generate a new image "
-            + "from those tags or that analysis.\n"
+            + "from those tags or that analysis. For tag_then_generate, set "
+            + '"pre_action" to "vision_tag". If the user says to create from, '
+            + "based on, using, or following the attached image's tags or "
+            + "contents, do not skip the vision_tag pre_action.\n"
             + "Korean examples: '이미지 태깅' with an attached image is tag_image; "
             + "'이 이미지를 태깅 후 그 태그로 생성' with an attached image is "
-            + "tag_then_generate; '그림 만들어줘' is generate_image; "
+            + "tag_then_generate with pre_action vision_tag; "
+            + "'이미지를 바탕으로 태그 뽑아서 생성까지 해줘' with an attached "
+            + "image is tag_then_generate with pre_action vision_tag; "
+            + "'그림 만들어줘' is generate_image; "
             + "'이미지 생성 방식 설명해줘' is chat.\n"
             + "Use attached_image from the user message context. No Markdown "
             + "outside the JSON object."

@@ -4,6 +4,8 @@ import time
 
 from gemmanima.server import (
     GemmAnimaRequestHandler,
+    _initial_stream_message,
+    _initial_stream_stage,
     chat_stream_events,
     initialize_server_runtime,
     load_user_settings,
@@ -107,6 +109,17 @@ def test_gui_html_contains_api_hooks() -> None:
     assert "runBrowserAutotest" in GUI_HTML
     assert "autotest-status" in GUI_HTML
     assert "renderPendingGeneration" in GUI_HTML
+
+
+def test_auto_stream_waits_for_model_route_before_generation_stage() -> None:
+    payload = {
+        "task": "auto",
+        "message": "이미지를 바탕으로 태그 뽑아서 생성까지 해줘",
+        "image_path": "input.png",
+    }
+
+    assert _initial_stream_stage(payload) == "routing"
+    assert _initial_stream_message(payload) == "Waiting for the model decision..."
     assert "renderThinkingBubble" in GUI_HTML
     assert "runStreamingRequest" in GUI_HTML
     assert "const pending = renderThinkingBubble(payload);" in GUI_HTML
@@ -186,7 +199,8 @@ def test_chat_stream_events_reports_thinking_before_complete(tmp_path: Path) -> 
     assert [event["type"] for event in events] == ["thinking", "routing", "working", "complete"]
     assert events[0]["stage"] == "thinking"
     assert events[1]["stage"] == "routing"
-    assert events[2]["stage"] == "generating"
+    assert events[2]["stage"] == "routing"
+    assert events[2]["message"] == "Waiting for the model decision..."
     assert events[-1]["data"]["mode"] == "generate_image"
 
 

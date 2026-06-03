@@ -325,12 +325,21 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
         else:
             auto_route = classify_auto_intent(payload, message=message, language=language)
             intent = str(auto_route.get("intent") or "chat")
-            if intent == "tag_then_generate" and str(payload.get("image_path") or "").strip():
-                result = handle_tag_then_generate_payload(payload, message=message, base_dir=base_dir)
+            attached_image_path = _attached_image_path(payload)
+            pre_action = str(auto_route.get("pre_action") or "").strip().lower()
+            if intent == "generate_image" and pre_action in {"vision_tag", "tag_image", "tag_then_generate"}:
+                intent = "tag_then_generate"
+                auto_route["intent"] = intent
+            if intent == "tag_then_generate" and attached_image_path:
+                result = handle_tag_then_generate_payload(
+                    {**payload, "image_path": attached_image_path},
+                    message=message,
+                    base_dir=base_dir,
+                )
                 result["auto_route"] = auto_route
                 return result
-            if intent == "tag_image" and str(payload.get("image_path") or "").strip():
-                result = handle_tag_payload(payload)
+            if intent == "tag_image" and attached_image_path:
+                result = handle_tag_payload({**payload, "image_path": attached_image_path})
                 result["auto_route"] = auto_route
                 return result
             if intent == "generate_image":
@@ -579,7 +588,7 @@ def handle_direct_generation_payload(
 
 
 def classify_auto_intent(payload: dict[str, Any], *, message: str, language: str) -> dict[str, Any]:
-    attached_image_path = str(payload.get("image_path") or "").strip()
+    attached_image_path = _attached_image_path(payload)
     attached_image = "true" if attached_image_path else "false"
     classifier_message = (
         "Classify this GemmAnima user message for routing. Return JSON only.\n"
@@ -632,10 +641,30 @@ def _parse_intent_classifier_result(result: dict[str, Any]) -> dict[str, Any]:
         confidence = float(data.get("confidence", 0.0))
     except (TypeError, ValueError):
         confidence = 0.0
+    pre_action = str(
+        data.get("pre_action")
+        or data.get("required_pre_action")
+        or data.get("before_generation")
+        or ""
+    ).strip().lower()
+    pre_action_aliases = {
+        "none": "",
+        "no": "",
+        "false": "",
+        "tag": "vision_tag",
+        "tag_image": "vision_tag",
+        "image_tag": "vision_tag",
+        "vision_tagging": "vision_tag",
+        "tag_then_generate": "vision_tag",
+    }
+    pre_action = pre_action_aliases.get(pre_action, pre_action)
+    if pre_action not in {"", "vision_tag"}:
+        pre_action = ""
     return {
         "intent": intent,
         "confidence": confidence,
         "reason": str(data.get("reason") or "").strip(),
+        "pre_action": pre_action,
     }
 
 
@@ -655,7 +684,7 @@ def _first_json_object(raw: str) -> dict[str, Any]:
 
 
 def handle_tag_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    image_path = str(payload.get("image_path") or "").strip()
+    image_path = _attached_image_path(payload)
     if not image_path:
         return {"error": "image_path is required for tag task", "status": "failed"}
     prompt = str(payload.get("message") or "").strip() or None
@@ -691,6 +720,10 @@ def handle_tag_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "output_path": None,
         "progress": ["route:tag", tagger_name],
     }
+
+
+def _attached_image_path(payload: dict[str, Any]) -> str:
+    return str(payload.get("image_path") or payload.get("reference_image_path") or "").strip()
 
 
 def _should_resume_generation_from_history(payload: dict[str, Any], conductor: GemmAnimaConductor) -> bool:

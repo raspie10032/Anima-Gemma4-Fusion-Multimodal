@@ -249,6 +249,8 @@ def _initial_stream_stage(payload: dict[str, Any]) -> str:
     task = str(payload.get("task") or "auto").lower()
     chat_mode = str(payload.get("chat_mode") or "").lower()
     message = str(payload.get("message") or "").lower()
+    if task == "auto" and chat_mode != "image_generation_request":
+        return "routing"
     if task in {"generate", "generate_image"} or chat_mode == "image_generation_request":
         return "generating"
     if task in {"tag", "tag_image", "vision_tag", "image_tag", "tag_then_generate", "tag_and_generate", "tag_generate"}:
@@ -260,6 +262,8 @@ def _initial_stream_stage(payload: dict[str, Any]) -> str:
 
 def _initial_stream_message(payload: dict[str, Any]) -> str:
     stage = _initial_stream_stage(payload)
+    if stage == "routing":
+        return "Waiting for the model decision..."
     if stage == "generating":
         return "Preparing image generation..."
     if stage == "tagging":
