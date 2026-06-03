@@ -557,6 +557,8 @@ def test_run_tipo_text_chat_uses_initialized_runtime_without_cli_runner(tmp_path
     assert result["status"] == "completed"
     assert runtime.calls[0]["headroom_enabled"] is True
     assert runtime.calls[0]["headroom_model"] == "gemma-local"
+    assert runtime.calls[0]["max_new_tokens"] == 256
+    assert runtime.calls[0]["temperature"] == 0.7
     assert result["message"] == "이미 준비된 모델 응답입니다."
     assert runtime.calls[0]["message"] == "안녕"
 

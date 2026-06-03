@@ -284,6 +284,69 @@ def test_handle_chat_payload_auto_uses_model_pre_action_before_generation(tmp_pa
     assert [call["chat_mode"] for call in calls] == ["intent_classification"]
 
 
+def test_handle_chat_payload_auto_rechecks_attached_image_before_chatting(tmp_path, monkeypatch) -> None:
+    image_path = tmp_path / "input.png"
+    image_path.write_bytes(b"fake image")
+    calls = []
+
+    def fake_text_chat(**kwargs):
+        calls.append(kwargs)
+        assert kwargs["chat_mode"] == "intent_classification"
+        assert kwargs["config"].max_new_tokens == 768
+        assert kwargs["config"].temperature == 0.15
+        if len(calls) == 1:
+            return {
+                "status": "completed",
+                "message": '{"intent":"chat","confidence":0.82,"reason":"mistaken natural reply"}',
+                "raw": '{"intent":"chat","confidence":0.82,"reason":"mistaken natural reply"}',
+                "seconds": 0.05,
+                "model": "chat.gguf",
+                "device": "CUDA0",
+                "chat_mode": "intent_classification",
+                "output_contract": "route_intent_json",
+            }
+        assert "Re-check this GemmAnima route" in kwargs["message"]
+        assert "attached image available to vision tools" in kwargs["message"]
+        return {
+            "status": "completed",
+            "message": '{"intent":"tag_image","confidence":0.96,"reason":"explicit attached image tag command"}',
+            "raw": '{"intent":"tag_image","confidence":0.96,"reason":"explicit attached image tag command"}',
+            "seconds": 0.05,
+            "model": "chat.gguf",
+            "device": "CUDA0",
+            "chat_mode": "intent_classification",
+            "output_contract": "route_intent_json",
+        }
+
+    monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fake_text_chat)
+    monkeypatch.setattr(
+        "gemmanima.api.run_wd_vision_tag",
+        lambda **kwargs: {
+            "status": "completed",
+            "tags": "1girl, solo, smile",
+            "raw": "",
+            "seconds": 0.1,
+            "tagger": "wd-swinv2-tagger-v3",
+        },
+    )
+
+    result = handle_chat_payload(
+        {
+            "task": "auto",
+            "message": "이 이미지 태깅해",
+            "image_path": str(image_path),
+        },
+        base_dir=tmp_path,
+    )
+
+    assert result["mode"] == "tag_image"
+    assert result["status"] == "completed"
+    assert result["tags"] == "1girl, solo, smile"
+    assert result["auto_route"]["intent"] == "tag_image"
+    assert result["auto_route"]["primary_route"]["intent"] == "chat"
+    assert len(calls) == 2
+
+
 def test_handle_chat_payload_tags_attached_image_before_generation_when_requested(tmp_path, monkeypatch) -> None:
     image_path = tmp_path / "input.png"
     image_path.write_bytes(b"fake image")

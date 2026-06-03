@@ -347,6 +347,8 @@ class TipoTextRuntime:
         chat_mode: str | None = None,
         headroom_enabled: bool | None = None,
         headroom_model: str | None = None,
+        max_new_tokens: int | None = None,
+        temperature: float | None = None,
     ) -> dict[str, Any]:
         selected_language = normalize_language(language)
         selected_chat_mode = normalize_chat_mode(chat_mode)
@@ -383,8 +385,8 @@ class TipoTextRuntime:
                 adapter_status = self._adapter_backend.apply(self._model, self.config.lora_paths)
                 output = self._model(
                     prompt.text,
-                    max_tokens=self.config.max_new_tokens,
-                    temperature=self.config.temperature,
+                    max_tokens=max_new_tokens if max_new_tokens is not None else self.config.max_new_tokens,
+                    temperature=temperature if temperature is not None else self.config.temperature,
                     seed=self.config.seed,
                     stop=["\nuser:", "\nassistant:"],
                 )
@@ -608,6 +610,8 @@ def run_tipo_text_chat(
             chat_mode=selected_chat_mode,
             headroom_enabled=cfg.headroom_enabled,
             headroom_model=cfg.headroom_model,
+            max_new_tokens=cfg.max_new_tokens,
+            temperature=cfg.temperature,
         )
 
     missing = _missing_text_assets(cfg)
@@ -1261,6 +1265,10 @@ def build_chat_contract_harness(chat_mode: str | None) -> str:
             + '"pre_action" must be "" or "vision_tag". Use "vision_tag" only '
             + "when the attached image must be read/tagged before the final "
             + "answer or generation.\n"
+            + "Spend extra internal reasoning on whether a tool must run. "
+            + "Do not answer conversationally when the user is commanding an "
+            + "available app action. Think through attachment state, requested "
+            + "operation, and sequence, then output only the final JSON.\n"
             + "Choose generate_image only when the user is asking the app to "
             + "create, draw, render, or modify an image now.\n"
             + "Choose chat for meta discussion about images, image generation, "

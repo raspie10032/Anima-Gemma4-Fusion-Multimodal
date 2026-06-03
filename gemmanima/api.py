@@ -274,6 +274,16 @@ def build_tipo_text_config(payload: dict[str, Any]) -> TipoTextConfig:
     return config
 
 
+def build_intent_classifier_config(payload: dict[str, Any]) -> TipoTextConfig:
+    config = build_tipo_text_config(payload)
+    return replace(
+        config,
+        max_new_tokens=int(payload.get("intent_max_new_tokens") or 768),
+        temperature=float(payload.get("intent_temperature") or 0.15),
+        headroom_enabled=False,
+    )
+
+
 def _comfy_memory_args(payload: dict[str, Any]) -> tuple[str, ...]:
     args: list[str] = []
     memory_mode = str(payload.get("memory_mode") or "").strip().lower()
@@ -327,6 +337,22 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
             intent = str(auto_route.get("intent") or "chat")
             attached_image_path = _attached_image_path(payload)
             pre_action = str(auto_route.get("pre_action") or "").strip().lower()
+            if attached_image_path and intent in {"chat", "generate_image"} and not pre_action:
+                arbitration = classify_attached_image_action(
+                    payload,
+                    message=message,
+                    language=language,
+                    prior_route=auto_route,
+                )
+                arbitration_intent = str(arbitration.get("intent") or "chat")
+                arbitration_pre_action = str(arbitration.get("pre_action") or "").strip().lower()
+                if arbitration_intent not in {"chat", "fallback"} or arbitration_pre_action:
+                    auto_route = {
+                        **arbitration,
+                        "primary_route": auto_route,
+                    }
+                    intent = arbitration_intent
+                    pre_action = arbitration_pre_action
             if intent == "generate_image" and pre_action in {"vision_tag", "tag_image", "tag_then_generate"}:
                 intent = "tag_then_generate"
                 auto_route["intent"] = intent
@@ -602,6 +628,7 @@ def classify_auto_intent(payload: dict[str, Any], *, message: str, language: str
         message=classifier_message,
         language=language,
         chat_mode="intent_classification",
+        config=build_intent_classifier_config(payload),
         history=[
             {"role": str(item.get("role", "")), "content": str(item.get("content", ""))}
             for item in payload.get("history", ())
@@ -611,6 +638,47 @@ def classify_auto_intent(payload: dict[str, Any], *, message: str, language: str
     parsed = _parse_intent_classifier_result(result)
     parsed["classifier_status"] = result.get("status")
     parsed["classifier_seconds"] = result.get("seconds")
+    return parsed
+
+
+def classify_attached_image_action(
+    payload: dict[str, Any],
+    *,
+    message: str,
+    language: str,
+    prior_route: dict[str, Any],
+) -> dict[str, Any]:
+    attached_image_path = _attached_image_path(payload)
+    classifier_message = (
+        "Re-check this GemmAnima route before answering in natural language or "
+        "starting generation. Return JSON only.\n"
+        "There is an attached image available to vision tools.\n"
+        f"attached_image: {'true' if attached_image_path else 'false'}\n"
+        f"attached_image_path: {attached_image_path}\n"
+        f"prior_intent: {prior_route.get('intent', '')}\n"
+        f"prior_reason: {prior_route.get('reason', '')}\n"
+        "If the user is commanding the app to tag, caption, describe, inspect, "
+        "analyze, or extract tags from the attached image, choose tag_image. "
+        "If the user wants to use those tags or that analysis to make a new "
+        "image, choose tag_then_generate and set pre_action to vision_tag. "
+        "Choose chat only when no tool should be run.\n"
+        f"user_message: {message}"
+    )
+    result = run_tipo_text_chat(
+        message=classifier_message,
+        language=language,
+        chat_mode="intent_classification",
+        config=build_intent_classifier_config(payload),
+        history=[
+            {"role": str(item.get("role", "")), "content": str(item.get("content", ""))}
+            for item in payload.get("history", ())
+            if isinstance(item, dict)
+        ],
+    )
+    parsed = _parse_intent_classifier_result(result)
+    parsed["classifier_status"] = result.get("status")
+    parsed["classifier_seconds"] = result.get("seconds")
+    parsed["classifier_pass"] = "attached_image_action"
     return parsed
 
 
