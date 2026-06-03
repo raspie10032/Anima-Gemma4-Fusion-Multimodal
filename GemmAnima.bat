@@ -26,7 +26,10 @@ goto end
 :gui
 call :ensure_env
 if errorlevel 1 goto failed
-"%PY%" -m gemmanima.cli gui-command
+set "CUDA_VISIBLE_DEVICES=0"
+set "GEMMA_EMBED_ON_GPU=1"
+echo [GemmAnima] Starting local GUI backend on http://127.0.0.1:8765
+"%PY%" -m gemmanima.server --host 127.0.0.1 --port 8765 --base-dir runs
 goto end
 
 :health
