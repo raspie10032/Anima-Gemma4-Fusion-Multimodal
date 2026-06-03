@@ -36,3 +36,25 @@ def test_readmes_prefer_single_batch_launcher() -> None:
         assert r"RTD\scripts\health_check.bat" not in text
         assert r"RTD\scripts\smoke_dry_run.bat" not in text
         assert r"RTD\scripts\tag_image.bat" not in text
+
+
+def test_readmes_include_required_reference_index_links() -> None:
+    required_links = [
+        "https://github.com/raspie10032/Anima-Gemma4-Fusion-Multimodal",
+        "https://huggingface.co/raspie/gemmanima-adapter-bundle",
+        "https://huggingface.co/mradermacher/gemma-4-E2B-it-heretic-ara-custom-GGUF",
+        "https://huggingface.co/circlestone-labs/Anima",
+        "https://huggingface.co/SmilingWolf/wd-swinv2-tagger-v3",
+        "https://github.com/ggml-org/llama.cpp",
+        "https://github.com/abetlen/llama-cpp-python",
+        "https://github.com/comfyanonymous/ComfyUI",
+        "https://github.com/chopratejas/headroom",
+        "https://danbooru.donmai.us/wiki_pages/tag_groups",
+        "https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/",
+    ]
+
+    for path in (Path("README.md"), Path("README.ko.md")):
+        text = path.read_text(encoding="utf-8")
+        assert "Reference Index" in text or "레퍼런스 인덱스" in text
+        for link in required_links:
+            assert link in text

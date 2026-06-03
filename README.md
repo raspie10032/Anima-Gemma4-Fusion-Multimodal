@@ -72,6 +72,45 @@ The configured sources live in:
 - `RTD/configs/model_sources.json`
 - `RTD/asset_manifest.json`
 
+## Reference Index
+
+This GitHub repository is the app/source surface, not a model mirror. Use these
+references to audit where each runtime component, model asset, and design idea
+comes from.
+
+### Model And Asset Sources
+
+| Component | Reference | Used for |
+| --- | --- | --- |
+| GemmAnima app source | [raspie10032/Anima-Gemma4-Fusion-Multimodal](https://github.com/raspie10032/Anima-Gemma4-Fusion-Multimodal) | Standalone app source, launchers, schemas, tests, and runtime orchestration. |
+| GemmAnima adapter bundle | [raspie/gemmanima-adapter-bundle](https://huggingface.co/raspie/gemmanima-adapter-bundle) | Gemma task adapters, prototype vision projector, HiddenStage bridge checkpoints, metadata, and model card. |
+| Gemma Core base GGUF | [mradermacher/gemma-4-E2B-it-heretic-ara-custom-GGUF](https://huggingface.co/mradermacher/gemma-4-E2B-it-heretic-ara-custom-GGUF) | Shared local GGUF loaded once for chat, planning, and Gemma-side adapters. |
+| Anima Image Core | [circlestone-labs/Anima](https://huggingface.co/circlestone-labs/Anima) | Anima diffusion model and VAE assets used by the local image renderer. |
+| WD SwinV2 tagger | [SmilingWolf/wd-swinv2-tagger-v3](https://huggingface.co/SmilingWolf/wd-swinv2-tagger-v3) | Default local ONNX Danbooru tagger for attached/generated image tagging. |
+
+### Runtime And Implementation References
+
+| Reference | Used for |
+| --- | --- |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) | GGUF runtime conventions, local chat inference, LoRA attachment, and multimodal projector execution model. |
+| [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) | Optional in-process Python binding path for resident Gemma runtime experiments. |
+| [ComfyUI](https://github.com/comfyanonymous/ComfyUI) | Sampler/scheduler naming, compatibility renderer concepts, and local diffusion-runtime expectations. |
+| [chopratejas/headroom](https://github.com/chopratejas/headroom) | Design reference for long-chat context compression. GemmAnima embeds its own minimal Headroom-style compressor and does not vendor or require the package. |
+| [Danbooru tag groups](https://danbooru.donmai.us/wiki_pages/tag_groups) | Human-readable reference for canonical English Danbooru tag vocabulary used by tag prompts and tagger output contracts. |
+| [NVIDIA Open Model License Agreement](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/) | License reference cited by the Anima upstream page where NVIDIA Cosmos-derived terms apply. |
+
+### Project Documentation References
+
+| Path | Reference role |
+| --- | --- |
+| `RTD/configs/model_sources.json` | Machine-readable source, filename, and license-id map for first-run downloads. |
+| `RTD/asset_manifest.json` | Portable RTD asset manifest and expected local model layout. |
+| `RTD/LICENSE_NOTICES.md` | Consolidated source/license notices for the composite prototype. |
+| `RTD/HF_MODEL_CARD.md` | Hugging Face-facing adapter bundle model-card source. |
+| `RTD/HF_MODEL_CARD.ko.md` | Korean Hugging Face-facing adapter bundle model-card source. |
+| `docs/architecture_summary.md` | High-level app architecture and data flow. |
+| `docs/verification_plan.md` | Test and verification surfaces for release checks. |
+
 Use the CLI to inspect the exact download plan for your environment:
 
 ```powershell

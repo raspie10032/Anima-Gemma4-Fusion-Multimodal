@@ -75,6 +75,44 @@ GitHub 저장소는 소스와 설정만 관리합니다. 모델은 다음 원칙
 python -m gemmanima.cli model-download-plan --json
 ```
 
+## 레퍼런스 인덱스
+
+GitHub 저장소는 앱/소스 코드 표면이며 모델 미러가 아닙니다. 각 모델,
+런타임, 설계 레퍼런스는 아래 원본을 기준으로 확인하세요.
+
+### 모델 및 에셋 출처
+
+| 구성요소 | 레퍼런스 | 사용 목적 |
+| --- | --- | --- |
+| GemmAnima 앱 소스 | [raspie10032/Anima-Gemma4-Fusion-Multimodal](https://github.com/raspie10032/Anima-Gemma4-Fusion-Multimodal) | 독립 앱 소스, launcher, schema, test, runtime orchestration |
+| GemmAnima 어댑터 번들 | [raspie/gemmanima-adapter-bundle](https://huggingface.co/raspie/gemmanima-adapter-bundle) | Gemma task adapter, prototype vision projector, HiddenStage bridge checkpoint, metadata, model card |
+| Gemma Core base GGUF | [mradermacher/gemma-4-E2B-it-heretic-ara-custom-GGUF](https://huggingface.co/mradermacher/gemma-4-E2B-it-heretic-ara-custom-GGUF) | 채팅, 계획, Gemma-side adapter에 공유로 쓰는 local GGUF |
+| Anima Image Core | [circlestone-labs/Anima](https://huggingface.co/circlestone-labs/Anima) | 로컬 이미지 렌더러의 diffusion model 및 VAE |
+| WD SwinV2 tagger | [SmilingWolf/wd-swinv2-tagger-v3](https://huggingface.co/SmilingWolf/wd-swinv2-tagger-v3) | 첨부/생성 이미지 태깅용 기본 local ONNX Danbooru tagger |
+
+### 런타임 및 구현 레퍼런스
+
+| 레퍼런스 | 사용 목적 |
+| --- | --- |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) | GGUF runtime, local chat inference, LoRA attach, multimodal projector 실행 모델 |
+| [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) | resident Gemma runtime 실험용 optional in-process Python binding |
+| [ComfyUI](https://github.com/comfyanonymous/ComfyUI) | sampler/scheduler 명칭, compatibility renderer 개념, local diffusion runtime 기준 |
+| [chopratejas/headroom](https://github.com/chopratejas/headroom) | long-chat context compression 설계 참고. GemmAnima는 자체 minimal Headroom-style compressor를 내장하며 해당 패키지를 vendor하거나 필수 의존성으로 요구하지 않습니다. |
+| [Danbooru tag groups](https://danbooru.donmai.us/wiki_pages/tag_groups) | 태그 prompt와 tagger output contract에 쓰는 canonical English Danbooru tag vocabulary 참고 |
+| [NVIDIA Open Model License Agreement](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/) | Anima upstream page가 NVIDIA Cosmos-derived 조건을 언급하는 경우 확인할 license reference |
+
+### 프로젝트 문서 레퍼런스
+
+| 경로 | 역할 |
+| --- | --- |
+| `RTD/configs/model_sources.json` | first-run download용 source, filename, license-id machine-readable map |
+| `RTD/asset_manifest.json` | portable RTD asset manifest 및 local model layout |
+| `RTD/LICENSE_NOTICES.md` | composite prototype source/license notice |
+| `RTD/HF_MODEL_CARD.md` | Hugging Face용 adapter bundle model card source |
+| `RTD/HF_MODEL_CARD.ko.md` | 한국어 Hugging Face용 adapter bundle model card source |
+| `docs/architecture_summary.md` | high-level app architecture 및 data flow |
+| `docs/verification_plan.md` | release check용 test/verification surface |
+
 ## Hugging Face 번들
 
 어댑터와 bridge 체크포인트는 다음 HF 저장소에 있습니다.
@@ -102,4 +140,3 @@ Anima 경로가 포함되므로, 별도의 라이선스 검토와 필요한 upst
 - 생성 이미지, run manifest, 캐시, 다운로드 모델, 체크포인트는 커밋하지 않습니다.
 - RTX 5060은 호환 PyTorch 빌드가 준비되기 전까지 training/cache 작업에서 제외하는 것이 기본 전제입니다.
 - 모델을 promote하거나 공개 주장에 넣기 전에는 반드시 별도 평가 결과가 필요합니다.
-
