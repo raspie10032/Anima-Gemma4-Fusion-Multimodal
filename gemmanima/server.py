@@ -409,11 +409,11 @@ def main(argv: list[str] | None = None) -> int:
     init_status = initialize_server_runtime()
     text_status = init_status.get("tipo_text", {})
     if text_status.get("status") == "completed":
-        print(f"Gemma text runtime initialized: {text_status.get('model')}")
+        print(f"Gemma text runtime initialized: {text_status.get('model')}", flush=True)
     else:
-        print(f"Gemma text runtime initialization failed: {text_status.get('error')}")
+        print(f"Gemma text runtime initialization failed: {text_status.get('error')}", flush=True)
     server = ThreadingHTTPServer((args.host, args.port), GemmAnimaRequestHandler)
-    print(f"GemmAnima backend listening on http://{args.host}:{args.port}")
+    print(f"GemmAnima backend listening on http://{args.host}:{args.port}", flush=True)
     server.serve_forever()
     return 0
 

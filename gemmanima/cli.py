@@ -1227,7 +1227,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "gui-command":
         command = (
             "$env:CUDA_VISIBLE_DEVICES='0'; $env:GEMMA_EMBED_ON_GPU='1'; "
-            f"python -m gemmanima.server --host {args.host} --port {args.port} --base-dir {args.base_dir}"
+            "$env:PYTHONUNBUFFERED='1'; $env:PYTHONIOENCODING='utf-8'; "
+            f"python -u -m gemmanima.server --host {args.host} --port {args.port} --base-dir {args.base_dir}"
         )
         payload = {
             "command": command,

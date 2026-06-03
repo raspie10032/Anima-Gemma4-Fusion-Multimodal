@@ -3,6 +3,8 @@ setlocal EnableExtensions
 cd /d "%~dp0"
 set "VENV_DIR=.venv"
 set "PY=%VENV_DIR%\Scripts\python.exe"
+set "PYTHONUNBUFFERED=1"
+set "PYTHONIOENCODING=utf-8"
 
 if "%~1"=="" goto gui
 if /I "%~1"=="bootstrap" goto bootstrap
@@ -29,7 +31,8 @@ if errorlevel 1 goto failed
 set "CUDA_VISIBLE_DEVICES=0"
 set "GEMMA_EMBED_ON_GPU=1"
 echo [GemmAnima] Starting local GUI backend on http://127.0.0.1:8765
-"%PY%" -m gemmanima.server --host 127.0.0.1 --port 8765 --base-dir runs
+echo [GemmAnima] Runtime logs will stream in this terminal window.
+"%PY%" -u -m gemmanima.server --host 127.0.0.1 --port 8765 --base-dir runs
 goto end
 
 :health
@@ -37,23 +40,23 @@ call :ensure_env
 if errorlevel 1 goto failed
 "%PY%" --version
 if errorlevel 1 goto failed
-"%PY%" -m gemmanima.core.dependencies
+"%PY%" -u -m gemmanima.core.dependencies
 if errorlevel 1 goto failed
-"%PY%" -m gemmanima.cli dependency-audit --json
+"%PY%" -u -m gemmanima.cli dependency-audit --json
 if errorlevel 1 goto failed
-"%PY%" -m gemmanima.cli model-download-plan --json
+"%PY%" -u -m gemmanima.cli model-download-plan --json
 if errorlevel 1 goto failed
-"%PY%" -m gemmanima.cli renderer-backends --json
+"%PY%" -u -m gemmanima.cli renderer-backends --json
 if errorlevel 1 goto failed
-"%PY%" -m gemmanima.cli real-render-health --json
+"%PY%" -u -m gemmanima.cli real-render-health --json
 if errorlevel 1 goto failed
-"%PY%" -m gemmanima.cli gui-command --json
+"%PY%" -u -m gemmanima.cli gui-command --json
 goto end
 
 :download
 call :ensure_env
 if errorlevel 1 goto failed
-"%PY%" -m gemmanima.cli ensure-model-assets --json
+"%PY%" -u -m gemmanima.cli ensure-model-assets --json
 goto end
 
 :dryrun
@@ -61,7 +64,7 @@ call :ensure_env
 if errorlevel 1 goto failed
 set "PROMPT=%~2"
 if "%PROMPT%"=="" set "PROMPT=draw a bright forest anime illustration"
-"%PY%" -m gemmanima.cli run "%PROMPT%" --renderer dry-run --json
+"%PY%" -u -m gemmanima.cli run "%PROMPT%" --renderer dry-run --json
 goto end
 
 :tag
@@ -71,13 +74,13 @@ if "%~2"=="" (
     echo Usage: GemmAnima.bat tag path\to\image.png
     exit /b 2
 )
-"%PY%" -m gemmanima.cli tag-image "%~2" --json
+"%PY%" -u -m gemmanima.cli tag-image "%~2" --json
 goto end
 
 :test
 call :ensure_env
 if errorlevel 1 goto failed
-"%PY%" -m pytest -q
+"%PY%" -u -m pytest -q
 goto end
 
 :help
@@ -114,14 +117,14 @@ if not exist "%PY%" (
     if errorlevel 1 exit /b 1
 )
 echo [GemmAnima] Updating source checkout package in %VENV_DIR%.
-"%PY%" -m pip install --upgrade pip
+"%PY%" -u -m pip install --upgrade pip
 if errorlevel 1 exit /b 1
-"%PY%" -m pip install -e .
+"%PY%" -u -m pip install -e .
 if errorlevel 1 exit /b 1
-"%PY%" -m pip install pytest
+"%PY%" -u -m pip install pytest
 if errorlevel 1 exit /b 1
 echo [GemmAnima] Dependency audit:
-"%PY%" -m gemmanima.core.dependencies
+"%PY%" -u -m gemmanima.core.dependencies
 exit /b %errorlevel%
 
 :end
