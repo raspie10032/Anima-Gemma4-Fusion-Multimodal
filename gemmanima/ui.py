@@ -928,6 +928,10 @@ GUI_HTML = r"""<!doctype html>
       if (data.mode === "generate_image" && isImagePath(data.output_path)) {
         return data.message || "이미지를 만들었습니다.";
       }
+      if (data.mode === "tag_image") {
+        const tags = tagResultText(data);
+        return tags ? `태그 결과\n${tags}` : "태그 결과가 비어 있습니다.";
+      }
       const message = data.message || data.tags || "완료했습니다.";
       const details = [];
       if (data.output_path) {
@@ -937,6 +941,10 @@ GUI_HTML = r"""<!doctype html>
       if (data.manifest_path) details.push(`manifest: ${data.manifest_path}`);
       if (data.mode && data.mode !== "chat") details.push(`mode: ${data.mode}`);
       return details.length ? `${message}\n\n${details.join("\n")}` : message;
+    }
+
+    function tagResultText(data) {
+      return String(data.tags || data.message || "").trim();
     }
 
     function isImagePath(path) {
@@ -1230,7 +1238,15 @@ GUI_HTML = r"""<!doctype html>
     }
 
     function shouldTagAttachedImage(message) {
-      return attachedImagePath && /(태그|tag|분석|설명|describe|caption)/i.test(message);
+      const text = String(message || "").toLowerCase();
+      return attachedImagePath && (
+        /(tag|tags|tagging|describe|caption)/i.test(text)
+        || text.includes("\ud0dc\uadf8")
+        || text.includes("\ud0dc\uae45")
+        || text.includes("\ubd84\uc11d")
+        || text.includes("\uc124\uba85")
+        || text.includes("\ucea1\uc158")
+      );
     }
 
     function shouldTagThenGenerateAttachedImage(message) {

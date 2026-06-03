@@ -128,6 +128,41 @@ def test_handle_chat_payload_tag_task_prefers_wd_tagger(tmp_path, monkeypatch) -
     assert result["progress"] == ["route:tag", "wd:vision"]
 
 
+def test_handle_chat_payload_auto_routes_korean_tagging_request_with_attachment_to_tagger(tmp_path, monkeypatch) -> None:
+    image_path = tmp_path / "input.png"
+    image_path.write_bytes(b"fake image")
+
+    def fake_wd_tag(**kwargs):
+        assert Path(kwargs["image_path"]) == image_path
+        return {
+            "status": "completed",
+            "tags": "1girl, solo, smile, looking_at_viewer",
+            "raw": "1girl:0.9, solo:0.8, smile:0.7, looking_at_viewer:0.6",
+            "seconds": 0.1,
+            "tagger": "wd-swinv2-tagger-v3",
+        }
+
+    def fail_text_chat(**kwargs):
+        raise AssertionError("Attached Korean tagging requests should not fall through to text chat")
+
+    monkeypatch.setattr("gemmanima.api.run_wd_vision_tag", fake_wd_tag)
+    monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fail_text_chat)
+
+    result = handle_chat_payload(
+        {
+            "task": "auto",
+            "message": "이미지 태깅",
+            "image_path": str(image_path),
+        },
+        base_dir=tmp_path,
+    )
+
+    assert result["mode"] == "tag_image"
+    assert result["status"] == "completed"
+    assert result["tags"] == "1girl, solo, smile, looking_at_viewer"
+    assert result["message"] == "1girl, solo, smile, looking_at_viewer"
+
+
 def test_handle_chat_payload_tags_attached_image_before_generation_when_requested(tmp_path, monkeypatch) -> None:
     image_path = tmp_path / "input.png"
     image_path.write_bytes(b"fake image")

@@ -322,6 +322,8 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
     if task == "auto":
         if _should_tag_then_generate_attached_image(payload, message):
             return handle_tag_then_generate_payload(payload, message=message, base_dir=base_dir)
+        if _should_tag_attached_image(payload, message):
+            return handle_tag_payload(payload)
         if chat_mode != "general_chat":
             route_as_text_chat = True
         else:
@@ -573,6 +575,25 @@ def _should_tag_then_generate_attached_image(payload: dict[str, Any], message: s
         and any(term in text for term in generation_terms)
         and any(term in text for term in sequence_terms)
     )
+
+
+def _should_tag_attached_image(payload: dict[str, Any], message: str) -> bool:
+    if not str(payload.get("image_path") or payload.get("reference_image_path") or "").strip():
+        return False
+    text = message.lower()
+    tag_terms = (
+        "tag",
+        "tags",
+        "tagging",
+        "describe",
+        "caption",
+        "\ud0dc\uadf8",
+        "\ud0dc\uae45",
+        "\ubd84\uc11d",
+        "\uc124\uba85",
+        "\ucea1\uc158",
+    )
+    return any(term in text for term in tag_terms)
 
 
 def handle_direct_generation_payload(
