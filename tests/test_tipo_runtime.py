@@ -227,6 +227,14 @@ def test_tipo_text_defaults_do_not_pin_a_machine_specific_gpu() -> None:
     assert cfg.device == ""
 
 
+def test_tipo_text_default_context_is_256k(monkeypatch) -> None:
+    monkeypatch.delenv("GEMMANIMA_TIPO_TEXT_N_CTX", raising=False)
+
+    cfg = TipoTextConfig()
+
+    assert cfg.n_ctx == 262144
+
+
 def test_tipo_text_config_can_be_overridden_by_environment(monkeypatch) -> None:
     monkeypatch.setenv("GEMMANIMA_TIPO_TEXT_VISIBLE_DEVICES", "2")
     monkeypatch.setenv("GEMMANIMA_TIPO_TEXT_DEVICE", "CUDA2")

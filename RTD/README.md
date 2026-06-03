@@ -21,10 +21,12 @@ first launcher command perform the same visible bootstrap path. The venv is
 created with `--system-site-packages` so existing CUDA Python runtimes can be
 reused instead of silently replaced.
 
-The chat UI includes an optional embedded Headroom-style context compressor.
-It follows the local-history compression idea from
-`chopratejas/headroom`, but the runtime compressor is built into GemmAnima and
-does not install or call an external package or service.
+The chat UI keeps the resident Gemma text runtime at the maximum supported
+256k context window by default (`GEMMANIMA_TIPO_TEXT_N_CTX=262144`). It also
+includes an optional embedded Headroom-style context compressor. The compressor
+follows the local-history compression idea from `chopratejas/headroom`, but the
+runtime compressor is built into GemmAnima and does not install or call an
+external package or service.
 
 The launcher does not perform hidden package installation after bootstrap. Use
 `dependency-audit` to inspect which runtime engines are available; missing

@@ -117,7 +117,7 @@ class TipoTextConfig:
     timeout_seconds: int = field(default_factory=lambda: _env_int("GEMMANIMA_TIPO_TEXT_TIMEOUT_SECONDS", 120))
     seed: int = field(default_factory=lambda: _env_int("GEMMANIMA_TIPO_TEXT_SEED", 42))
     chat_template: str = field(default_factory=lambda: os.environ.get("GEMMANIMA_TIPO_TEXT_CHAT_TEMPLATE", "gemma"))
-    n_ctx: int = field(default_factory=lambda: _env_int("GEMMANIMA_TIPO_TEXT_N_CTX", 4096))
+    n_ctx: int = field(default_factory=lambda: _env_int("GEMMANIMA_TIPO_TEXT_N_CTX", 262144))
     n_gpu_layers: int = field(default_factory=lambda: _env_int("GEMMANIMA_TIPO_TEXT_N_GPU_LAYERS", -1))
     main_gpu: int = field(default_factory=lambda: _env_int("GEMMANIMA_TIPO_TEXT_MAIN_GPU", 0))
     flash_attn: bool = field(default_factory=lambda: _env_bool("GEMMANIMA_TIPO_TEXT_FLASH_ATTN", False))
