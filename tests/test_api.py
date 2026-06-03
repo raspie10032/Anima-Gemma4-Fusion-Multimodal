@@ -347,6 +347,110 @@ def test_handle_chat_payload_auto_rechecks_attached_image_before_chatting(tmp_pa
     assert len(calls) == 2
 
 
+def test_handle_chat_payload_auto_rechecks_attached_image_after_classifier_fallback(tmp_path, monkeypatch) -> None:
+    image_path = tmp_path / "input.png"
+    image_path.write_bytes(b"fake image")
+    calls = []
+
+    def fake_text_chat(**kwargs):
+        calls.append(kwargs)
+        assert kwargs["chat_mode"] == "intent_classification"
+        if len(calls) == 1:
+            return {
+                "status": "completed",
+                "message": "네, 어떤 이미지에 대해 태그를 달까요?",
+                "raw": "네, 어떤 이미지에 대해 태그를 달까요?",
+                "seconds": 0.05,
+                "model": "chat.gguf",
+                "device": "CUDA0",
+                "chat_mode": "intent_classification",
+                "output_contract": "route_intent_json",
+            }
+        assert "Re-check this GemmAnima route" in kwargs["message"]
+        return {
+            "status": "completed",
+            "message": (
+                '{"intent":"tag_then_generate","pre_action":"vision_tag",'
+                '"confidence":0.94,"reason":"attached image should be tagged before generation"}'
+            ),
+            "raw": (
+                '{"intent":"tag_then_generate","pre_action":"vision_tag",'
+                '"confidence":0.94,"reason":"attached image should be tagged before generation"}'
+            ),
+            "seconds": 0.05,
+            "model": "chat.gguf",
+            "device": "CUDA0",
+            "chat_mode": "intent_classification",
+            "output_contract": "route_intent_json",
+        }
+
+    monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fake_text_chat)
+    monkeypatch.setattr(
+        "gemmanima.api.run_wd_vision_tag",
+        lambda **kwargs: {
+            "status": "completed",
+            "tags": "1girl, solo, blue eyes",
+            "raw": "",
+            "seconds": 0.1,
+            "tagger": "wd-swinv2-tagger-v3",
+        },
+    )
+
+    result = handle_chat_payload(
+        {
+            "task": "auto",
+            "message": "이미지를 태깅하고 태깅바탕으로 새롭게 하나 생성해줘",
+            "image_path": str(image_path),
+            "renderer": "dry-run",
+        },
+        base_dir=tmp_path,
+    )
+
+    assert result["mode"] == "generate_image"
+    assert result["status"] == "completed"
+    assert result["auto_route"]["intent"] == "tag_then_generate"
+    assert result["auto_route"]["primary_route"]["intent"] == "fallback"
+    assert result["tags_used"] == "1girl, solo, blue eyes"
+    assert len(calls) == 2
+
+
+def test_handle_chat_payload_blocks_chat_fallback_when_attached_image_routing_fails(tmp_path, monkeypatch) -> None:
+    image_path = tmp_path / "input.png"
+    image_path.write_bytes(b"fake image")
+    calls = []
+
+    def fake_text_chat(**kwargs):
+        calls.append(kwargs)
+        return {
+            "status": "completed",
+            "message": "네, 어떤 이미지에 대해 태그를 달까요?",
+            "raw": "네, 어떤 이미지에 대해 태그를 달까요?",
+            "seconds": 0.05,
+            "model": "chat.gguf",
+            "device": "CUDA0",
+            "chat_mode": "intent_classification",
+            "output_contract": "route_intent_json",
+        }
+
+    monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fake_text_chat)
+    result = handle_chat_payload(
+        {
+            "task": "auto",
+            "message": "이미지를 태깅하고 태깅바탕으로 새롭게 하나 생성해줘",
+            "image_path": str(image_path),
+        },
+        base_dir=tmp_path,
+    )
+
+    assert result["mode"] == "route_failed"
+    assert result["status"] == "failed"
+    assert result["error_code"] == "attached_image_route_failed"
+    assert result["auto_route"]["intent"] == "fallback"
+    assert result["auto_route"]["primary_route"]["intent"] == "fallback"
+    assert "어떤 이미지" in result["auto_route"]["raw_excerpt"]
+    assert len(calls) == 2
+
+
 def test_handle_chat_payload_tags_attached_image_before_generation_when_requested(tmp_path, monkeypatch) -> None:
     image_path = tmp_path / "input.png"
     image_path.write_bytes(b"fake image")

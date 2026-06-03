@@ -337,7 +337,7 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
             intent = str(auto_route.get("intent") or "chat")
             attached_image_path = _attached_image_path(payload)
             pre_action = str(auto_route.get("pre_action") or "").strip().lower()
-            if attached_image_path and intent in {"chat", "generate_image"} and not pre_action:
+            if attached_image_path and intent in {"chat", "generate_image", "fallback"} and not pre_action:
                 arbitration = classify_attached_image_action(
                     payload,
                     message=message,
@@ -353,6 +353,11 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
                     }
                     intent = arbitration_intent
                     pre_action = arbitration_pre_action
+                elif arbitration_intent == "fallback":
+                    auto_route = {
+                        **arbitration,
+                        "primary_route": auto_route,
+                    }
             if intent == "generate_image" and pre_action in {"vision_tag", "tag_image", "tag_then_generate"}:
                 intent = "tag_then_generate"
                 auto_route["intent"] = intent
@@ -374,6 +379,19 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
                 route_as_text_chat = True
             elif intent == "chat":
                 route_as_text_chat = True
+            elif intent == "fallback" and attached_image_path:
+                return {
+                    "mode": "route_failed",
+                    "status": "failed",
+                    "error": "model intent routing failed for attached image request",
+                    "error_code": "attached_image_route_failed",
+                    "message": (
+                        "The local model did not produce a valid tool decision for the "
+                        "attached image. No chat fallback was used."
+                    ),
+                    "auto_route": auto_route,
+                    "progress": ["route:auto", "intent:fallback", "attached_image:blocked_chat_fallback"],
+                }
             else:
                 routing_conductor = GemmAnimaConductor(config=build_config(payload))
                 route_as_text_chat = not routing_conductor.planner.is_image_request(message)
@@ -688,6 +706,7 @@ def _parse_intent_classifier_result(result: dict[str, Any]) -> dict[str, Any]:
             "intent": "fallback",
             "confidence": 0.0,
             "reason": str(result.get("error") or "intent classifier failed"),
+            "raw_excerpt": str(result.get("raw") or result.get("message") or "")[:500],
         }
     raw = str(result.get("raw") or result.get("message") or "")
     data = _first_json_object(raw)
@@ -733,6 +752,7 @@ def _parse_intent_classifier_result(result: dict[str, Any]) -> dict[str, Any]:
         "confidence": confidence,
         "reason": str(data.get("reason") or "").strip(),
         "pre_action": pre_action,
+        "raw_excerpt": raw[:500] if intent == "fallback" else "",
     }
 
 
