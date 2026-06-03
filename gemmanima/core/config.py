@@ -119,7 +119,7 @@ class EngineConfig:
                 width=1024,
                 height=1024,
                 steps=28,
-                cfg=4.0,
+                cfg=5.0,
             ),
             "anima_int8_draft": RendererProfile(
                 name="anima_int8_draft",

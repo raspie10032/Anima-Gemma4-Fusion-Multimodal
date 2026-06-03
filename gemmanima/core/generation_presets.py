@@ -84,7 +84,7 @@ SUPPORTED_SCHEDULERS: tuple[str, ...] = (
 )
 
 MIN_EFFECTIVE_ANIMA_CFG = 3.0
-DEFAULT_EFFECTIVE_ANIMA_CFG = 4.5
+DEFAULT_EFFECTIVE_ANIMA_CFG = 5.0
 
 
 @dataclass(frozen=True)
@@ -130,7 +130,7 @@ GENERATION_PRESETS: dict[str, GenerationPreset] = {
         name="anima_balanced",
         label="Anima Balanced",
         steps=28,
-        cfg=4.0,
+        cfg=5.0,
         sampler="euler_ancestral",
         scheduler="sgm_uniform",
         renderer_profile="anima_fp16_final",
@@ -139,7 +139,7 @@ GENERATION_PRESETS: dict[str, GenerationPreset] = {
         name="anima_final",
         label="Anima Final",
         steps=36,
-        cfg=4.0,
+        cfg=5.0,
         sampler="euler_ancestral",
         scheduler="sgm_uniform",
         renderer_profile="anima_fp16_final",
@@ -148,7 +148,7 @@ GENERATION_PRESETS: dict[str, GenerationPreset] = {
         name="anima_lora",
         label="Anima LoRA",
         steps=28,
-        cfg=4.0,
+        cfg=5.0,
         sampler="euler_ancestral",
         scheduler="sgm_uniform",
         renderer_profile="anima_fp16_final",

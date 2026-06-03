@@ -98,6 +98,9 @@ def test_gui_html_contains_api_hooks() -> None:
     assert "attachImage(path" in GUI_HTML
     assert "clearAttachment()" in GUI_HTML
     assert "attachedImageName" in GUI_HTML
+    assert "shouldTagThenGenerateAttachedImage" in GUI_HTML
+    assert 'payload.task = "tag_then_generate"' in GUI_HTML
+    assert "else if (!forcedTask && shouldTagAttachedImage(message)) payload.task = \"tag\"" in GUI_HTML
     assert "runBrowserAutotest" in GUI_HTML
     assert "autotest-status" in GUI_HTML
     assert "renderPendingGeneration" in GUI_HTML
@@ -182,6 +185,21 @@ def test_chat_stream_events_reports_thinking_before_complete(tmp_path: Path) -> 
     assert events[1]["stage"] == "routing"
     assert events[2]["stage"] == "generating"
     assert events[-1]["data"]["mode"] == "generate_image"
+
+
+def test_chat_stream_events_reports_tagging_for_tag_then_generate(tmp_path: Path) -> None:
+    def fake_handler(payload, *, base_dir):
+        return {"mode": "generate_image", "status": "completed", "message": "done"}
+
+    events = list(
+        chat_stream_events(
+            {"task": "tag_then_generate", "message": "tag then generate", "image_path": "input.png"},
+            base_dir=tmp_path,
+            handler=fake_handler,
+        )
+    )
+
+    assert events[2]["stage"] == "tagging"
 
 
 def test_chat_stream_events_yields_before_handler_completes(tmp_path: Path) -> None:

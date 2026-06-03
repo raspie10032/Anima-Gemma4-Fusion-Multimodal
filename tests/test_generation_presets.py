@@ -39,6 +39,13 @@ def test_apply_generation_preset_keeps_prompt_and_sets_render_defaults() -> None
     assert plan.lora_stack == GENERATION_PRESETS["anima_balanced"].lora_stack
 
 
+def test_anima_balanced_defaults_use_quality_floor() -> None:
+    preset = GENERATION_PRESETS["anima_balanced"]
+
+    assert preset.steps == 28
+    assert preset.cfg == 5.0
+
+
 def test_apply_generation_preset_supports_swapped_orientation() -> None:
     plan = apply_generation_preset(
         GenerationPlan(prompt="wide scene"),
@@ -86,7 +93,7 @@ def test_apply_generation_preset_clamps_low_cfg_by_default() -> None:
         overrides={"cfg": 1.0},
     )
 
-    assert plan.cfg == 4.5
+    assert plan.cfg == 5.0
 
 
 def test_apply_generation_preset_allows_low_cfg_for_experiments() -> None:

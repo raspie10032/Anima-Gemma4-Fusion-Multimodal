@@ -128,6 +128,46 @@ def test_handle_chat_payload_tag_task_prefers_wd_tagger(tmp_path, monkeypatch) -
     assert result["progress"] == ["route:tag", "wd:vision"]
 
 
+def test_handle_chat_payload_tags_attached_image_before_generation_when_requested(tmp_path, monkeypatch) -> None:
+    image_path = tmp_path / "input.png"
+    image_path.write_bytes(b"fake image")
+
+    def fake_wd_tag(**kwargs):
+        assert Path(kwargs["image_path"]) == image_path
+        return {
+            "status": "completed",
+            "tags": "1girl, solo, forest, lantern, dynamic pose",
+            "raw": "1girl:0.9, solo:0.8, forest:0.7, lantern:0.6, dynamic pose:0.6",
+            "seconds": 0.1,
+            "tagger": "wd-swinv2-tagger-v3",
+        }
+
+    def fail_tipo(**kwargs):
+        raise AssertionError("WD tagger should satisfy tag-then-generate without Tipo fallback")
+
+    monkeypatch.setattr("gemmanima.api.run_wd_vision_tag", fake_wd_tag)
+    monkeypatch.setattr("gemmanima.api.run_tipo_vision_tag", fail_tipo)
+
+    result = handle_chat_payload(
+        {
+            "task": "tag_then_generate",
+            "message": "이 이미지를 태깅 후 그 태그로 새 이미지 생성해줘",
+            "image_path": str(image_path),
+            "renderer": "dry-run",
+        },
+        base_dir=tmp_path,
+    )
+
+    assert result["mode"] == "generate_image"
+    assert result["status"] == "completed"
+    assert result["tagging"]["tags"] == "1girl, solo, forest, lantern, dynamic pose"
+    assert "route:tag_then_generate" in result["progress"]
+    assert "wd:vision" in result["progress"]
+    assert result["plan"]["reference_image_path"] == str(image_path)
+    assert "forest" in result["plan"]["prompt"]
+    assert "lantern" in result["plan"]["prompt"]
+
+
 def test_handle_chat_payload_tag_task_requires_image_path(tmp_path) -> None:
     result = handle_chat_payload({"task": "tag", "message": "tag this"}, base_dir=tmp_path)
 
@@ -728,7 +768,7 @@ def test_handle_chat_payload_clamps_low_cfg_by_default(tmp_path) -> None:
 
     assert result["status"] == "completed"
     manifest = json.loads(Path(result["manifest_path"]).read_text(encoding="utf-8"))
-    assert manifest["plan"]["cfg"] == 4.5
+    assert manifest["plan"]["cfg"] == 5.0
 
 
 def test_handle_chat_payload_can_allow_low_cfg_for_experiments(tmp_path) -> None:

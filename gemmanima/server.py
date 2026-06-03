@@ -251,7 +251,7 @@ def _initial_stream_stage(payload: dict[str, Any]) -> str:
     message = str(payload.get("message") or "").lower()
     if task in {"generate", "generate_image"} or chat_mode == "image_generation_request":
         return "generating"
-    if task in {"tag", "tag_image", "vision_tag", "image_tag"}:
+    if task in {"tag", "tag_image", "vision_tag", "image_tag", "tag_then_generate", "tag_and_generate", "tag_generate"}:
         return "tagging"
     if any(word in message for word in ("draw", "render", "generate image", "create image", "이미지", "그림", "일러스트")):
         return "generating"

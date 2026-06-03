@@ -315,9 +315,13 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
     message = str(payload.get("message", "")).strip()
     if not message:
         return {"error": "message is required", "status": "failed"}
+    if task in {"tag_then_generate", "tag_and_generate", "tag_generate"}:
+        return handle_tag_then_generate_payload(payload, message=message, base_dir=base_dir)
     route_as_text_chat = task in {"chat", "talk"}
     auto_route: dict[str, Any] | None = None
     if task == "auto":
+        if _should_tag_then_generate_attached_image(payload, message):
+            return handle_tag_then_generate_payload(payload, message=message, base_dir=base_dir)
         if chat_mode != "general_chat":
             route_as_text_chat = True
         else:
@@ -464,6 +468,111 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
 
     force_plan = task in {"generate", "generate_image", "image", "img"}
     return handle_direct_generation_payload(payload, message=message, base_dir=base_dir, force_plan=force_plan)
+
+
+def handle_tag_then_generate_payload(
+    payload: dict[str, Any],
+    *,
+    message: str,
+    base_dir: str | Path,
+) -> dict[str, Any]:
+    image_path = str(payload.get("image_path") or payload.get("reference_image_path") or "").strip()
+    if not image_path:
+        return {"error": "image_path is required for tag-then-generate task", "status": "failed"}
+    tag_payload = {**payload, "task": "tag", "image_path": image_path}
+    tag_result = handle_tag_payload(tag_payload)
+    if tag_result.get("status") != "completed":
+        return {
+            "mode": "generate_image",
+            "status": "failed",
+            "error": tag_result.get("error", "tagging failed before generation"),
+            "tagging": tag_result,
+            "progress": ["route:tag_then_generate", *tag_result.get("progress", ())],
+        }
+    tags = str(tag_result.get("tags") or "").strip()
+    generation_message = _tag_then_generate_message(message, tags)
+    generation_payload = {
+        **payload,
+        "task": "generate",
+        "message": generation_message,
+        "image_path": image_path,
+        "reference_image_path": image_path,
+    }
+    generation = handle_direct_generation_payload(
+        generation_payload,
+        message=generation_message,
+        base_dir=base_dir,
+        force_plan=True,
+    )
+    generation["tagging"] = {
+        "status": tag_result.get("status"),
+        "tags": tags,
+        "tagger": tag_result.get("tagger"),
+        "seconds": tag_result.get("seconds"),
+    }
+    generation["tags_used"] = tags
+    generation["progress"] = [
+        "route:tag_then_generate",
+        *tag_result.get("progress", ()),
+        "tag:prompt_prefill",
+        *generation.get("progress", ()),
+    ]
+    return generation
+
+
+def _tag_then_generate_message(message: str, tags: str) -> str:
+    cleaned_message = message.strip()
+    cleaned_tags = tags.strip()
+    if not cleaned_tags:
+        return cleaned_message
+    return (
+        f"{cleaned_message}\n"
+        "Use these English Danbooru tags extracted from the attached reference image as the primary visual prompt: "
+        f"{cleaned_tags}"
+    )
+
+
+def _should_tag_then_generate_attached_image(payload: dict[str, Any], message: str) -> bool:
+    if not str(payload.get("image_path") or payload.get("reference_image_path") or "").strip():
+        return False
+    text = message.lower()
+    tag_terms = (
+        "tag",
+        "describe",
+        "caption",
+        "\ud0dc\uadf8",
+        "\ud0dc\uae45",
+        "\ubd84\uc11d",
+        "\uc124\uba85",
+    )
+    generation_terms = (
+        "draw",
+        "render",
+        "generate",
+        "create",
+        "image",
+        "\uc0dd\uc131",
+        "\uadf8\ub824",
+        "\uadf8\ub9bc",
+        "\ub9cc\ub4e4",
+        "\uc774\ubbf8\uc9c0",
+    )
+    sequence_terms = (
+        "then",
+        "after",
+        "from those",
+        "with those",
+        "\ud6c4",
+        "\ub4a4",
+        "\uae30\ubc18",
+        "\ubc14\ud0d5",
+        "\uadf8 \ud0dc\uadf8",
+    )
+    return (
+        any(term in text for term in tag_terms)
+        and any(term in text for term in generation_terms)
+        and any(term in text for term in sequence_terms)
+    )
 
 
 def handle_direct_generation_payload(

@@ -250,7 +250,7 @@ def main(argv: list[str] | None = None) -> int:
         render_parser.add_argument("--seed", type=int, default=19375672098)
         render_parser.add_argument("--size", type=int, default=512)
         render_parser.add_argument("--steps", type=int, default=12)
-        render_parser.add_argument("--cfg", type=float, default=4.5)
+        render_parser.add_argument("--cfg", type=float, default=5.0)
         render_parser.add_argument("--unet-dtype", default="fp8_e4m3fn_fast")
         render_parser.add_argument("--hiddenstage-bridge", default=None)
         render_parser.add_argument("--json", action="store_true")
@@ -264,7 +264,7 @@ def main(argv: list[str] | None = None) -> int:
     real_render_parser.add_argument("--seed", type=int, default=19375672098)
     real_render_parser.add_argument("--size", type=int, default=512)
     real_render_parser.add_argument("--steps", type=int, default=12)
-    real_render_parser.add_argument("--cfg", type=float, default=4.5)
+    real_render_parser.add_argument("--cfg", type=float, default=5.0)
     real_render_parser.add_argument("--unet-dtype", default="fp8_e4m3fn_fast")
     real_render_parser.add_argument("--hiddenstage-bridge", default=None)
     real_render_parser.add_argument("--json", action="store_true")
@@ -1168,7 +1168,7 @@ def main(argv: list[str] | None = None) -> int:
             f"$env:CUDA_VISIBLE_DEVICES='0'; $env:GEMMA_EMBED_ON_GPU='1'; "
             f"{DEFAULT_EMBEDDED_PYTHON} scripts\\smoke_in_process_render.py "
             "--image-root runs\\images --manifest-root runs\\manifests "
-            "--steps 8 --size 512 --cfg 4.5 --json"
+            "--steps 8 --size 512 --cfg 5.0 --json"
         )
         payload = {
             "command": command,

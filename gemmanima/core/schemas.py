@@ -47,7 +47,7 @@ class GenerationPlan:
     width: int = 1024
     height: int = 1024
     steps: int = 28
-    cfg: float = 4.0
+    cfg: float = 5.0
     seed: int | None = None
     sampler: str = "euler_ancestral"
     scheduler: str = "sgm_uniform"
@@ -80,7 +80,7 @@ class GenerationPlan:
             width=int(data.get("width", 1024)),
             height=int(data.get("height", 1024)),
             steps=int(data.get("steps", 28)),
-            cfg=float(data.get("cfg", 4.0)),
+            cfg=float(data.get("cfg", 5.0)),
             seed=None if data.get("seed") is None else int(data["seed"]),
             sampler=str(data.get("sampler", "euler_ancestral")),
             scheduler=str(data.get("scheduler", "sgm_uniform")),
