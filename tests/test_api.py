@@ -128,9 +128,10 @@ def test_handle_chat_payload_tag_task_prefers_wd_tagger(tmp_path, monkeypatch) -
     assert result["progress"] == ["route:tag", "wd:vision"]
 
 
-def test_handle_chat_payload_auto_routes_korean_tagging_request_with_attachment_to_tagger(tmp_path, monkeypatch) -> None:
+def test_handle_chat_payload_auto_uses_model_intent_for_korean_tagging_request(tmp_path, monkeypatch) -> None:
     image_path = tmp_path / "input.png"
     image_path.write_bytes(b"fake image")
+    calls = []
 
     def fake_wd_tag(**kwargs):
         assert Path(kwargs["image_path"]) == image_path
@@ -142,11 +143,24 @@ def test_handle_chat_payload_auto_routes_korean_tagging_request_with_attachment_
             "tagger": "wd-swinv2-tagger-v3",
         }
 
-    def fail_text_chat(**kwargs):
-        raise AssertionError("Attached Korean tagging requests should not fall through to text chat")
+    def fake_text_chat(**kwargs):
+        calls.append(kwargs)
+        assert kwargs["chat_mode"] == "intent_classification"
+        assert "attached_image: true" in kwargs["message"]
+        assert "이미지 태깅" in kwargs["message"]
+        return {
+            "status": "completed",
+            "message": '{"intent":"tag_image","confidence":0.96,"reason":"attached image tagging request"}',
+            "raw": '{"intent":"tag_image","confidence":0.96,"reason":"attached image tagging request"}',
+            "seconds": 0.05,
+            "model": "chat.gguf",
+            "device": "CUDA0",
+            "chat_mode": "intent_classification",
+            "output_contract": "route_intent_json",
+        }
 
     monkeypatch.setattr("gemmanima.api.run_wd_vision_tag", fake_wd_tag)
-    monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fail_text_chat)
+    monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fake_text_chat)
 
     result = handle_chat_payload(
         {
@@ -161,6 +175,56 @@ def test_handle_chat_payload_auto_routes_korean_tagging_request_with_attachment_
     assert result["status"] == "completed"
     assert result["tags"] == "1girl, solo, smile, looking_at_viewer"
     assert result["message"] == "1girl, solo, smile, looking_at_viewer"
+    assert result["auto_route"]["intent"] == "tag_image"
+    assert [call["chat_mode"] for call in calls] == ["intent_classification"]
+
+
+def test_handle_chat_payload_auto_uses_model_intent_for_tag_then_generate(tmp_path, monkeypatch) -> None:
+    image_path = tmp_path / "input.png"
+    image_path.write_bytes(b"fake image")
+    calls = []
+
+    def fake_text_chat(**kwargs):
+        calls.append(kwargs)
+        assert kwargs["chat_mode"] == "intent_classification"
+        return {
+            "status": "completed",
+            "message": '{"intent":"tag_then_generate","confidence":0.94,"reason":"tag first then generate"}',
+            "raw": '{"intent":"tag_then_generate","confidence":0.94,"reason":"tag first then generate"}',
+            "seconds": 0.05,
+            "model": "chat.gguf",
+            "device": "CUDA0",
+            "chat_mode": "intent_classification",
+            "output_contract": "route_intent_json",
+        }
+
+    monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fake_text_chat)
+    monkeypatch.setattr(
+        "gemmanima.api.run_wd_vision_tag",
+        lambda **kwargs: {
+            "status": "completed",
+            "tags": "1girl, solo, forest, lantern",
+            "raw": "",
+            "seconds": 0.1,
+            "tagger": "wd-swinv2-tagger-v3",
+        },
+    )
+
+    result = handle_chat_payload(
+        {
+            "task": "auto",
+            "message": "이 이미지를 태깅 후 그 태그로 새 이미지 생성해줘",
+            "image_path": str(image_path),
+            "renderer": "dry-run",
+        },
+        base_dir=tmp_path,
+    )
+
+    assert result["mode"] == "generate_image"
+    assert result["status"] == "completed"
+    assert result["auto_route"]["intent"] == "tag_then_generate"
+    assert result["tags_used"] == "1girl, solo, forest, lantern"
+    assert [call["chat_mode"] for call in calls] == ["intent_classification"]
 
 
 def test_handle_chat_payload_tags_attached_image_before_generation_when_requested(tmp_path, monkeypatch) -> None:

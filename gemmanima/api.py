@@ -320,17 +320,19 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
     route_as_text_chat = task in {"chat", "talk"}
     auto_route: dict[str, Any] | None = None
     if task == "auto":
-        if _should_tag_then_generate_attached_image(payload, message):
-            return handle_tag_then_generate_payload(payload, message=message, base_dir=base_dir)
-        if _should_tag_attached_image(payload, message):
-            return handle_tag_payload(payload)
         if chat_mode != "general_chat":
             route_as_text_chat = True
         else:
             auto_route = classify_auto_intent(payload, message=message, language=language)
             intent = str(auto_route.get("intent") or "chat")
+            if intent == "tag_then_generate" and str(payload.get("image_path") or "").strip():
+                result = handle_tag_then_generate_payload(payload, message=message, base_dir=base_dir)
+                result["auto_route"] = auto_route
+                return result
             if intent == "tag_image" and str(payload.get("image_path") or "").strip():
-                return handle_tag_payload(payload)
+                result = handle_tag_payload(payload)
+                result["auto_route"] = auto_route
+                return result
             if intent == "generate_image":
                 chat_mode = "image_generation_request"
                 output_contract = output_contract_for_mode(chat_mode)
@@ -534,68 +536,6 @@ def _tag_then_generate_message(message: str, tags: str) -> str:
     )
 
 
-def _should_tag_then_generate_attached_image(payload: dict[str, Any], message: str) -> bool:
-    if not str(payload.get("image_path") or payload.get("reference_image_path") or "").strip():
-        return False
-    text = message.lower()
-    tag_terms = (
-        "tag",
-        "describe",
-        "caption",
-        "\ud0dc\uadf8",
-        "\ud0dc\uae45",
-        "\ubd84\uc11d",
-        "\uc124\uba85",
-    )
-    generation_terms = (
-        "draw",
-        "render",
-        "generate",
-        "create",
-        "image",
-        "\uc0dd\uc131",
-        "\uadf8\ub824",
-        "\uadf8\ub9bc",
-        "\ub9cc\ub4e4",
-        "\uc774\ubbf8\uc9c0",
-    )
-    sequence_terms = (
-        "then",
-        "after",
-        "from those",
-        "with those",
-        "\ud6c4",
-        "\ub4a4",
-        "\uae30\ubc18",
-        "\ubc14\ud0d5",
-        "\uadf8 \ud0dc\uadf8",
-    )
-    return (
-        any(term in text for term in tag_terms)
-        and any(term in text for term in generation_terms)
-        and any(term in text for term in sequence_terms)
-    )
-
-
-def _should_tag_attached_image(payload: dict[str, Any], message: str) -> bool:
-    if not str(payload.get("image_path") or payload.get("reference_image_path") or "").strip():
-        return False
-    text = message.lower()
-    tag_terms = (
-        "tag",
-        "tags",
-        "tagging",
-        "describe",
-        "caption",
-        "\ud0dc\uadf8",
-        "\ud0dc\uae45",
-        "\ubd84\uc11d",
-        "\uc124\uba85",
-        "\ucea1\uc158",
-    )
-    return any(term in text for term in tag_terms)
-
-
 def handle_direct_generation_payload(
     payload: dict[str, Any],
     *,
@@ -639,9 +579,14 @@ def handle_direct_generation_payload(
 
 
 def classify_auto_intent(payload: dict[str, Any], *, message: str, language: str) -> dict[str, Any]:
+    attached_image_path = str(payload.get("image_path") or "").strip()
+    attached_image = "true" if attached_image_path else "false"
     classifier_message = (
         "Classify this GemmAnima user message for routing. Return JSON only.\n"
-        f"attached_image: {bool(str(payload.get('image_path') or '').strip())}\n"
+        "The local model, not the browser UI, must decide the route from the "
+        "conversation and attachment state.\n"
+        f"attached_image: {attached_image}\n"
+        f"attached_image_path: {attached_image_path}\n"
         f"user_message: {message}"
     )
     result = run_tipo_text_chat(
@@ -676,9 +621,12 @@ def _parse_intent_classifier_result(result: dict[str, Any]) -> dict[str, Any]:
         "generate": "generate_image",
         "tag": "tag_image",
         "tags": "tag_image",
+        "tag_generate": "tag_then_generate",
+        "tag_and_generate": "tag_then_generate",
+        "tagged_generation": "tag_then_generate",
     }
     intent = aliases.get(intent, intent)
-    if intent not in {"chat", "generate_image", "tag_image"}:
+    if intent not in {"chat", "generate_image", "tag_image", "tag_then_generate"}:
         intent = "fallback"
     try:
         confidence = float(data.get("confidence", 0.0))

@@ -1256,14 +1256,24 @@ def build_chat_contract_harness(chat_mode: str | None) -> str:
             common
             + "Return exactly one compact JSON object with these keys: "
             + '"intent", "confidence", "reason".\n'
-            + '"intent" must be one of "chat", "generate_image", or "tag_image".\n'
+            + '"intent" must be one of "chat", "generate_image", '
+            + '"tag_image", or "tag_then_generate".\n'
             + "Choose generate_image only when the user is asking the app to "
             + "create, draw, render, or modify an image now.\n"
             + "Choose chat for meta discussion about images, image generation, "
             + "prompts, routing, quality, settings, or when the user explicitly "
             + "says it is not an image request.\n"
             + "Choose tag_image only when the user asks to tag, caption, or "
-            + "describe an attached image. No Markdown outside the JSON object."
+            + "describe an attached image.\n"
+            + "Choose tag_then_generate when the user asks to tag, caption, or "
+            + "analyze an attached image first and then generate a new image "
+            + "from those tags or that analysis.\n"
+            + "Korean examples: '이미지 태깅' with an attached image is tag_image; "
+            + "'이 이미지를 태깅 후 그 태그로 생성' with an attached image is "
+            + "tag_then_generate; '그림 만들어줘' is generate_image; "
+            + "'이미지 생성 방식 설명해줘' is chat.\n"
+            + "Use attached_image from the user message context. No Markdown "
+            + "outside the JSON object."
         )
     if selected == "status_question":
         return (

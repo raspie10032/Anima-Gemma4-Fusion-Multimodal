@@ -1237,27 +1237,6 @@ GUI_HTML = r"""<!doctype html>
       refreshDownloadStatus().catch(() => {});
     }
 
-    function shouldTagAttachedImage(message) {
-      const text = String(message || "").toLowerCase();
-      return attachedImagePath && (
-        /(tag|tags|tagging|describe|caption)/i.test(text)
-        || text.includes("\ud0dc\uadf8")
-        || text.includes("\ud0dc\uae45")
-        || text.includes("\ubd84\uc11d")
-        || text.includes("\uc124\uba85")
-        || text.includes("\ucea1\uc158")
-      );
-    }
-
-    function shouldTagThenGenerateAttachedImage(message) {
-      if (!attachedImagePath) return false;
-      const text = String(message || "").toLowerCase();
-      const hasTag = /tag|describe|caption/i.test(text) || text.includes("\ud0dc\uadf8") || text.includes("\ud0dc\uae45") || text.includes("\ubd84\uc11d") || text.includes("\uc124\uba85");
-      const hasGenerate = /draw|render|generate|create|image/i.test(text) || text.includes("\uc774\ubbf8\uc9c0") || text.includes("\uadf8\ub9bc") || text.includes("\uc0dd\uc131") || text.includes("\uadf8\ub824") || text.includes("\ub9cc\ub4e4");
-      const hasSequence = /then|after|from those|with those/i.test(text) || text.includes("\ud6c4") || text.includes("\ub4a4") || text.includes("\uae30\ubc18") || text.includes("\ubc14\ud0d5") || text.includes("\uadf8 \ud0dc\uadf8");
-      return hasTag && hasGenerate && hasSequence;
-    }
-
     async function runRequest() {
       const message = $("message").value.trim();
       if (!message && !attachedImagePath) return;
@@ -1287,8 +1266,6 @@ GUI_HTML = r"""<!doctype html>
         headroom_enabled: $("headroom_enabled").checked
       };
       if (attachedImagePath) payload.reference_image_path = attachedImagePath;
-      if (!forcedTask && shouldTagThenGenerateAttachedImage(message)) payload.task = "tag_then_generate";
-      else if (!forcedTask && shouldTagAttachedImage(message)) payload.task = "tag";
       const forcedChatMode = $("force_chat_mode").value;
       if (forcedChatMode) payload.chat_mode = forcedChatMode;
       const pending = renderThinkingBubble(payload);

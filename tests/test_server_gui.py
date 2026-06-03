@@ -98,12 +98,12 @@ def test_gui_html_contains_api_hooks() -> None:
     assert "attachImage(path" in GUI_HTML
     assert "clearAttachment()" in GUI_HTML
     assert "attachedImageName" in GUI_HTML
-    assert "shouldTagThenGenerateAttachedImage" in GUI_HTML
-    assert 'text.includes("\\ud0dc\\uae45")' in GUI_HTML
     assert "tagResultText" in GUI_HTML
     assert 'data.mode === "tag_image"' in GUI_HTML
-    assert 'payload.task = "tag_then_generate"' in GUI_HTML
-    assert "else if (!forcedTask && shouldTagAttachedImage(message)) payload.task = \"tag\"" in GUI_HTML
+    assert "shouldTagAttachedImage" not in GUI_HTML
+    assert "shouldTagThenGenerateAttachedImage" not in GUI_HTML
+    assert 'payload.task = "tag_then_generate"' not in GUI_HTML
+    assert 'payload.task = "tag"' not in GUI_HTML
     assert "runBrowserAutotest" in GUI_HTML
     assert "autotest-status" in GUI_HTML
     assert "renderPendingGeneration" in GUI_HTML
