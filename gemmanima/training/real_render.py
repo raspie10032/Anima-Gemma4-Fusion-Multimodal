@@ -1,16 +1,15 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
 from gemmanima.core.config import EngineConfig
 
 
-DEFAULT_EMBEDDED_PYTHON = Path(r"E:\ComfyUI_sage\python_embeded\python.exe")
-DEFAULT_CHAT_RENDER_SCRIPT = Path(r"E:\anima_gemma_swap\scripts\core\18_hiddenstage_chat_generate.py")
-DEFAULT_REAL_RENDER_OUTPUT = Path(
-    r"C:\Users\seine\Documents\Anima-Gemma4-Fusion-Multimodal\runs\images\nahida_hiddenstage_bridge_real_smoke.png"
-)
+DEFAULT_EMBEDDED_PYTHON = Path(os.environ.get("GEMMANIMA_RENDER_PYTHON", "python"))
+DEFAULT_CHAT_RENDER_SCRIPT = Path(os.environ.get("GEMMANIMA_RENDER_SCRIPT", "scripts/core/18_hiddenstage_chat_generate.py"))
+DEFAULT_REAL_RENDER_OUTPUT = Path("runs/images/nahida_hiddenstage_bridge_real_smoke.png")
 DEFAULT_REAL_RENDER_REQUEST = (
     "Draw Nahida from Genshin Impact as a bright forest anime illustration, "
     "gentle expression, detailed green-and-white outfit, soft sunlight."

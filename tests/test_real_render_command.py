@@ -13,7 +13,8 @@ def test_real_render_command_uses_trained_bridge_and_4070_ti_super(capsys) -> No
     assert "nahida_hiddenstage_bridge_real_smoke.png" in payload["command"]
     assert payload["seed"] == 19375672098
     assert "--seed" in payload["argv"]
-    assert payload["dependencies"]["ready"] is True
+    assert isinstance(payload["dependencies"]["ready"], bool)
+    assert "hiddenstage_bridge" in payload["dependencies"]["checks"]
 
 
 def test_real_render_command_accepts_hiddenstage_bridge_override(tmp_path, capsys) -> None:

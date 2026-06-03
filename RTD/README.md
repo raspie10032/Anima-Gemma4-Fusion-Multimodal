@@ -37,12 +37,14 @@ The runtime model set is split into three named parts:
 
 One shared base GGUF plus LoRA/adapters:
 
-- Base GGUF: `D:\Projects\training\out\gemma-4-E2B-it-heretic-ara-Q4_K_M.gguf`
-- Text/chat LoRA: `D:\Projects\training\out\lora\adapter_model.f16.gguf`
+- Base GGUF:
+  `%LOCALAPPDATA%\GemmAnima\models\gemma_core\gemma-4-E2B-it-heretic-ara-custom.Q4_K_M.gguf`
+- Text/chat LoRA:
+  `%LOCALAPPDATA%\GemmAnima\models\gemma_core\text-adapter-model-f16.gguf`
 - Vision/tagger LoRA:
-  `D:\Projects\training\out\gemmanima_v4_vision_tagger\adapter_model.f16.gguf`
+  `%LOCALAPPDATA%\GemmAnima\models\gemma_core\vision-tagger-adapter-model-f16.gguf`
 - Vision mmproj:
-  `D:\Projects\training\out\_completed\gemma4-tipo-vision.mmproj-f16.gguf`
+  `%LOCALAPPDATA%\GemmAnima\models\gemma_core\gemma4-tipo-vision.mmproj-f16.gguf`
 
 The runtime now defaults to base GGUF plus llama.cpp `--lora` loading. Merged
 TIPO GGUF files stay in `asset_manifest.json` only as compatibility/reference
@@ -51,8 +53,9 @@ artifacts.
 ### Anima Image Core
 
 - Diffusion model:
-  `E:\ComfyUI_sage\ComfyUI\models\diffusion_models\anima-base-v1.0.safetensors`
-- VAE: `E:\ComfyUI_sage\ComfyUI\models\vae\qwen_image_vae.safetensors`
+  `%LOCALAPPDATA%\GemmAnima\models\anima_image_core\anima-base-v1.0.safetensors`
+- VAE:
+  `%LOCALAPPDATA%\GemmAnima\models\anima_image_core\qwen_image_vae.safetensors`
 
 Anima text encoder weights are not part of the required standalone runtime. The
 in-process renderer keeps only tokenizer-format metadata for Anima conditioning.
@@ -60,10 +63,11 @@ in-process renderer keeps only tokenizer-format metadata for Anima conditioning.
 ### HiddenStage Bridge
 
 - Planner adapter:
-  `D:\Projects\training\out\hiddenstage_multimodal_planner_anima_v2\adapter_model.safetensors`
+  `%LOCALAPPDATA%\GemmAnima\models\hiddenstage_bridge\hiddenstage-planner-adapter.safetensors`
 - Planner vision embedding:
-  `D:\Projects\training\out\hiddenstage_multimodal_planner_anima_v2\embed_vision.pt`
-- Bridge checkpoint: `E:\anima_gemma_swap\kv_proj_hiddenstage_planner_v2.pt`
+  `%LOCALAPPDATA%\GemmAnima\models\hiddenstage_bridge\hiddenstage-planner-embed-vision.pt`
+- Bridge checkpoint:
+  `%LOCALAPPDATA%\GemmAnima\models\hiddenstage_bridge\kv_proj_hiddenstage_planner_v2.pt`
 
 Runtime bridge profiles:
 
@@ -80,7 +84,8 @@ These profiles are prototype routing choices, not promoted production models.
 
 ## What Is Included
 
-- `asset_manifest.json` - required external files and directories.
+- `asset_manifest.json` - portable relative asset layout for the local model
+  root.
 - `GITHUB_README.md` - GitHub-facing documentation boundary.
 - `LICENSE_NOTICES.md` - source license and attribution checklist.
 - `HF_MODEL_CARD.md` - Hugging Face-facing adapter bundle model card.

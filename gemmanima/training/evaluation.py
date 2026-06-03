@@ -3,8 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from gemmanima.core.model_paths import model_path
 
-DEFAULT_BRIDGE_OUT = Path(r"E:\anima_gemma_swap\kv_proj_hiddenstage_planner_v2.pt")
+DEFAULT_BRIDGE_OUT = model_path("hiddenstage_bridge", "kv_proj_hiddenstage_planner_v2.pt")
 
 
 def audit_bridge_checkpoint(path: str | Path = DEFAULT_BRIDGE_OUT) -> dict[str, Any]:

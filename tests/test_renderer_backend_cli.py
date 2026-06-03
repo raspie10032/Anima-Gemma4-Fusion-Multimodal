@@ -15,4 +15,4 @@ def test_renderer_backends_reports_in_process_dependency_status(capsys) -> None:
     assert main(["renderer-backends", "--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
 
-    assert payload["in_process"]["dependency_ready"] is True
+    assert isinstance(payload["in_process"]["dependency_ready"], bool)

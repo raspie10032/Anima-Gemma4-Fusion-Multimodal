@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import sys
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from gemmanima.core.config import EngineConfig
+
+
+def _env_path(name: str, default: str) -> Path:
+    return Path(os.environ.get(name, default))
 
 
 @dataclass(frozen=True)
@@ -37,13 +42,17 @@ class TrainedBridgeRuntime:
         self,
         *,
         config: EngineConfig | None = None,
-        comfy_root: str | Path = r"E:\ComfyUI_sage\ComfyUI",
-        swap_adapter_root: str | Path = r"E:\anima_gemma_swap\scripts\core",
+        comfy_root: str | Path | None = None,
+        swap_adapter_root: str | Path | None = None,
         device: str = "cuda",
     ) -> None:
         self.config = config or EngineConfig()
-        self.comfy_root = Path(comfy_root)
-        self.swap_adapter_root = Path(swap_adapter_root)
+        self.comfy_root = Path(comfy_root) if comfy_root is not None else _env_path("GEMMANIMA_COMFY_ROOT", "ComfyUI")
+        self.swap_adapter_root = (
+            Path(swap_adapter_root)
+            if swap_adapter_root is not None
+            else _env_path("GEMMANIMA_SWAP_ADAPTER_ROOT", "scripts/core")
+        )
         self.device = device
         self._adapter = None
         self._checkpoint: dict[str, Any] | None = None

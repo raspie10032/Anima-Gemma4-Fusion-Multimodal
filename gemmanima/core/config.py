@@ -20,42 +20,34 @@ class ModelConfig:
     gemma_planner_adapter: Path = model_path(
         "hiddenstage_bridge",
         "hiddenstage-planner-adapter.safetensors",
-        r"D:\Projects\training\out\hiddenstage_multimodal_planner_anima_v2\adapter_model.safetensors",
     )
     gemma_vision_embedding: Path = model_path(
         "hiddenstage_bridge",
         "hiddenstage-planner-embed-vision.pt",
-        r"D:\Projects\training\out\hiddenstage_multimodal_planner_anima_v2\embed_vision.pt",
     )
     anima_diffusion_model: Path = model_path(
         "anima_image_core",
         "anima-base-v1.0.safetensors",
-        r"E:\ComfyUI_sage\ComfyUI\models\diffusion_models\anima-base-v1.0.safetensors",
     )
     anima_vae: Path = model_path(
         "anima_image_core",
         "qwen_image_vae.safetensors",
-        r"E:\ComfyUI_sage\ComfyUI\models\vae\qwen_image_vae.safetensors",
     )
     hiddenstage_bridge: Path = model_path(
         "hiddenstage_bridge",
         "kv_proj_hiddenstage_planner_v2.pt",
-        r"E:\anima_gemma_swap\kv_proj_hiddenstage_planner_v2.pt",
     )
     hiddenstage_bridge_balanced_pose: Path = model_path(
         "hiddenstage_bridge",
         "kv_proj_balanced_pose_153k_pose10k_a0p35.pt",
-        r"C:\Users\seine\Documents\Anima-Gemma4-Fusion-Multimodal\runs\cache\bridge_quality_1p53m_v2_153k_pose10k\bridge\kv_proj_bridge_quality_1p53m_v2_153k_pose10k_from_a0p35.pt",
     )
     hiddenstage_bridge_style_artist: Path = model_path(
         "hiddenstage_bridge",
         "kv_proj_style_artist_v37a_10k.pt",
-        r"C:\Users\seine\Documents\Anima-Gemma4-Fusion-Multimodal\runs\cache\text_preservation_blended_v37\bridge\text_preservation_blended_v37a_10k_bridge.pt",
     )
     hiddenstage_bridge_text_exact: Path = model_path(
         "hiddenstage_bridge",
         "kv_proj_text_exact_v27_alpha35.pt",
-        r"C:\Users\seine\Documents\Anima-Gemma4-Fusion-Multimodal\runs\cache\text_preservation_blended_v27\bridge\text_preservation_blended_v27_alpha35_bridge.pt",
     )
 
     def bridge_profiles(self) -> dict[str, BridgeProfile]:

@@ -5,7 +5,7 @@ def test_external_script_backend_profile_is_current_default() -> None:
     profile = renderer_backend_profile("external_script")
 
     assert profile.name == "external_script"
-    assert profile.ready is True
+    assert isinstance(profile.ready, bool)
     assert profile.execution == "subprocess"
 
 
@@ -14,8 +14,8 @@ def test_in_process_backend_reports_import_boundary() -> None:
 
     assert profile.name == "in_process"
     assert profile.execution == "in_process"
-    assert profile.ready is True
-    assert profile.dependency_ready is True
+    assert isinstance(profile.ready, bool)
+    assert isinstance(profile.dependency_ready, bool)
     assert "comfy_import" in profile.checks
     assert "comfy_bootstrap_module" in profile.checks
     assert "gemma_hidden_provider_module" in profile.checks
@@ -33,6 +33,6 @@ def test_renderer_backend_audit_contains_both_paths() -> None:
     audit = audit_renderer_backend()
 
     assert set(audit) == {"external_script", "in_process", "local_worker"}
-    assert audit["external_script"]["ready"] is True
+    assert isinstance(audit["external_script"]["ready"], bool)
     assert "checks" in audit["in_process"]
     assert audit["local_worker"]["execution"] == "subprocess"

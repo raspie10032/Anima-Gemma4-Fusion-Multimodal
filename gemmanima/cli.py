@@ -197,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     teacher_parser.add_argument(
         "--manifest",
-        default=r"E:\anima_gemma_swap\dataset_manifests\hiddenstage_multimodal_planner_anima_v2.jsonl",
+        default=r"runs\dataset_manifests\hiddenstage_multimodal_planner_anima_v2.jsonl",
     )
     teacher_parser.add_argument(
         "--output-subset",
@@ -206,7 +206,7 @@ def main(argv: list[str] | None = None) -> int:
     teacher_parser.add_argument("--limit", type=int, default=0)
     teacher_parser.add_argument(
         "--target-dir",
-        default=r"E:\anima_gemma_swap\cache_hiddenstage_planner_v2\targets",
+        default=r"runs\cache_hiddenstage_planner_v2\targets",
     )
     teacher_parser.add_argument("--json", action="store_true")
 
@@ -305,7 +305,7 @@ def main(argv: list[str] | None = None) -> int:
     poc1_parser = subparsers.add_parser("poc1-cache-plan", help="Print the PoC1 1k cache build plan.")
     poc1_parser.add_argument(
         "--manifest",
-        default=r"E:\anima_gemma_swap\dataset_manifests\hiddenstage_multimodal_planner_anima_v2.jsonl",
+        default=r"runs\dataset_manifests\hiddenstage_multimodal_planner_anima_v2.jsonl",
     )
     poc1_parser.add_argument("--subset", default=str(DEFAULT_POC1_SUBSET))
     poc1_parser.add_argument("--target-dir", default=str(DEFAULT_POC1_TARGET_DIR))
@@ -409,13 +409,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     image_state_plan_parser.add_argument(
         "--source-manifest",
-        default=r"E:\anima_gemma_swap\dataset_manifests\hiddenstage_multimodal_planner_anima_v2.jsonl",
+        default=r"runs\dataset_manifests\hiddenstage_multimodal_planner_anima_v2.jsonl",
     )
     image_state_plan_parser.add_argument("--subset", default=None)
     image_state_plan_parser.add_argument("--output-root", default=r"runs\cache\image_state_conditioning_v1")
     image_state_plan_parser.add_argument(
         "--text-translator",
-        default=r"E:\anima_gemma_swap\final_adapters\kv_proj_text_delta_300k_from_epoch1_a0p35.pt",
+        default=r"runs\adapters\kv_proj_text_delta_300k_from_epoch1_a0p35.pt",
     )
     image_state_plan_parser.add_argument("--sample-count", type=int, default=10000)
     image_state_plan_parser.add_argument("--stage", default="image_state_conditioning_v1")
@@ -1124,9 +1124,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "bridge-smoke-command":
         command = (
-            r"E:\ComfyUI_sage\python_embeded\python.exe "
+            f"{DEFAULT_EMBEDDED_PYTHON} "
             r"scripts\smoke_hiddenstage_bridge_forward.py "
-            r"--checkpoint E:\anima_gemma_swap\kv_proj_hiddenstage_planner_v2.pt"
+            f"--checkpoint {EngineConfig().models.hiddenstage_bridge}"
         )
         payload = {"command": command}
         if args.json:

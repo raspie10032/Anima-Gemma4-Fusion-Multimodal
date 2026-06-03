@@ -1,26 +1,27 @@
+model_root:
+  default: "%LOCALAPPDATA%\\GemmAnima\\models"
+  override_env: GEMMANIMA_MODEL_ROOT
+
 gemma_core:
-  shared_base_gguf: D:\Projects\training\out\gemma-4-E2B-it-heretic-ara-Q4_K_M.gguf
-  text_lora: D:\Projects\training\out\lora\adapter_model.f16.gguf
-  vision_lora: D:\Projects\training\out\gemmanima_v4_vision_tagger\adapter_model.f16.gguf
-  vision_mmproj: D:\Projects\training\out\_completed\gemma4-tipo-vision.mmproj-f16.gguf
+  shared_base_gguf: "${GEMMANIMA_MODEL_ROOT}/gemma_core/gemma-4-E2B-it-heretic-ara-custom.Q4_K_M.gguf"
+  text_lora: "${GEMMANIMA_MODEL_ROOT}/gemma_core/text-adapter-model-f16.gguf"
+  vision_lora: "${GEMMANIMA_MODEL_ROOT}/gemma_core/vision-tagger-adapter-model-f16.gguf"
+  vision_mmproj: "${GEMMANIMA_MODEL_ROOT}/gemma_core/gemma4-tipo-vision.mmproj-f16.gguf"
 
 anima_image_core:
-  diffusion_model: E:\ComfyUI_sage\ComfyUI\models\diffusion_models\anima-base-v1.0.safetensors
-  vae: E:\ComfyUI_sage\ComfyUI\models\vae\qwen_image_vae.safetensors
+  diffusion_model: "${GEMMANIMA_MODEL_ROOT}/anima_image_core/anima-base-v1.0.safetensors"
+  vae: "${GEMMANIMA_MODEL_ROOT}/anima_image_core/qwen_image_vae.safetensors"
 
 hiddenstage_bridge:
-  planner_adapter: D:\Projects\training\out\hiddenstage_multimodal_planner_anima_v2\adapter_model.safetensors
-  planner_vision_embedding: D:\Projects\training\out\hiddenstage_multimodal_planner_anima_v2\embed_vision.pt
-  bridge_checkpoint: E:\anima_gemma_swap\kv_proj_hiddenstage_planner_v2.pt
+  planner_adapter: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/hiddenstage-planner-adapter.safetensors"
+  planner_vision_embedding: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/hiddenstage-planner-embed-vision.pt"
+  bridge_checkpoint: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_hiddenstage_planner_v2.pt"
   bridge_profiles:
-    balanced_pose: runs\cache\bridge_quality_1p53m_v2_153k_pose10k\bridge\kv_proj_bridge_quality_1p53m_v2_153k_pose10k_from_a0p35.pt
-    style_artist: runs\cache\text_preservation_blended_v37\bridge\text_preservation_blended_v37a_10k_bridge.pt
-    text_exact: runs\cache\text_preservation_blended_v27\bridge\text_preservation_blended_v27_alpha35_bridge.pt
-    legacy_mse: E:\anima_gemma_swap\kv_proj_hiddenstage_planner_v2.pt
+    balanced_pose: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_balanced_pose_153k_pose10k_a0p35.pt"
+    style_artist: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_style_artist_v37a_10k.pt"
+    text_exact: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_text_exact_v27_alpha35.pt"
+    legacy_mse: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_hiddenstage_planner_v2.pt"
   default_runtime_profile: balanced_pose
-  planner_eval_loss: 1.0061092711985111
-  planner_eval_threshold: 1.5
-  bridge_val_mse: 0.001104317136865575
 
 hardware:
-  primary_gpu: RTX 4070 Ti SUPER
+  primary_gpu: user-selected CUDA device

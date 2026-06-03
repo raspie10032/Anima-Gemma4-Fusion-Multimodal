@@ -36,7 +36,7 @@ def test_explicit_image_request_generates_manifest_and_dryrun_output(tmp_path: P
     assert response.output_path and response.output_path.exists()
     manifest_text = response.manifest_path.read_text(encoding="utf-8")
     assert "RTX 4070 Ti SUPER" in manifest_text
-    assert "adapter_model.safetensors" in manifest_text
+    assert "hiddenstage-planner-adapter.safetensors" in manifest_text
 
 
 def test_dryrun_generation_message_does_not_claim_image_was_created(tmp_path: Path) -> None:

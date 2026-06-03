@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import re
 
 from gemmanima.core.config import EngineConfig
+from gemmanima.core.model_paths import model_path
 from gemmanima.core.schemas import ContextCapsule, GenerationPlan
 
 
@@ -49,8 +50,8 @@ NEGATIVE_IMAGE_REQUEST_PATTERNS = (
 
 @dataclass(frozen=True)
 class PlannerArtifacts:
-    adapter_model: str = r"D:\Projects\training\out\hiddenstage_multimodal_planner_anima_v2\adapter_model.safetensors"
-    vision_embedding: str = r"D:\Projects\training\out\hiddenstage_multimodal_planner_anima_v2\embed_vision.pt"
+    adapter_model: str = str(model_path("hiddenstage_bridge", "hiddenstage-planner-adapter.safetensors"))
+    vision_embedding: str = str(model_path("hiddenstage_bridge", "hiddenstage-planner-embed-vision.pt"))
     eval_loss: float = 1.0061092711985111
     eval_threshold: float = 1.5
 

@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
 import torch
 
+from gemmanima.core.model_paths import default_model_root
 
-DEFAULT_GEMMA_DIR = Path(
-    r"C:\Users\seine\.cache\huggingface\hub\models--p-e-w--gemma-4-E2B-it-heretic-ara\snapshots\c9a1d4c031981f14d86eeb0c7d87de7fafd34513"
-)
 DEFAULT_GEMMA_PREFIX = "model.language_model."
 
 
@@ -21,7 +19,11 @@ class GemmaHiddenRuntime(Protocol):
 
 @dataclass(frozen=True)
 class GemmaHiddenConfig:
-    gemma_dir: Path = DEFAULT_GEMMA_DIR
+    gemma_dir: Path = field(
+        default_factory=lambda: Path(
+            os.environ.get("GEMMANIMA_GEMMA_HF_DIR", str(default_model_root() / "gemma_core_hf"))
+        )
+    )
     prefix: str = DEFAULT_GEMMA_PREFIX
     dtype: str = "bfloat16"
     device: str = "cuda"

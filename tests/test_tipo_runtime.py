@@ -786,7 +786,7 @@ def test_tipo_text_chat_injects_requested_language_harness(tmp_path) -> None:
         message="Explain this in Korean even if prior logs are English.",
         language="ko",
         history=[{"role": "assistant", "content": "Previous English answer."}],
-        config=TipoTextConfig(cli=cli, model=model),
+        config=TipoTextConfig(cli=cli, model=model, lora_paths=()),
         runner=fake_runner,
     )
 
@@ -817,7 +817,7 @@ def test_tipo_text_chat_injects_requested_chat_contract(tmp_path) -> None:
         message="Make an image prompt from this idea.",
         language="en",
         chat_mode="image_generation_request",
-        config=TipoTextConfig(cli=cli, model=model),
+        config=TipoTextConfig(cli=cli, model=model, lora_paths=()),
         runner=fake_runner,
     )
 
@@ -841,7 +841,7 @@ def test_tipo_text_chat_fails_when_image_contract_is_invalid(tmp_path) -> None:
     result = run_tipo_text_chat(
         message="Make an image.",
         chat_mode="image_generation_request",
-        config=TipoTextConfig(cli=cli, model=model),
+        config=TipoTextConfig(cli=cli, model=model, lora_paths=()),
         runner=fake_runner,
     )
 

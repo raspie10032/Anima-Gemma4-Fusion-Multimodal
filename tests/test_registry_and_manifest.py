@@ -59,6 +59,29 @@ def test_model_path_uses_model_root_when_legacy_file_is_missing(tmp_path: Path, 
     assert resolved == tmp_path / "models" / "gemma_core" / "base.gguf"
 
 
+def test_model_path_ignores_existing_legacy_path_by_default(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.delenv("GEMMANIMA_MODEL_ROOT", raising=False)
+    monkeypatch.delenv("GEMMANIMA_ALLOW_LEGACY_MODEL_PATHS", raising=False)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local_app_data"))
+    legacy = tmp_path / "legacy.gguf"
+    legacy.write_bytes(b"legacy")
+
+    resolved = model_path("gemma_core", "base.gguf", legacy)
+
+    assert resolved == tmp_path / "local_app_data" / "GemmAnima" / "models" / "gemma_core" / "base.gguf"
+
+
+def test_model_path_uses_existing_legacy_only_when_explicitly_enabled(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.delenv("GEMMANIMA_MODEL_ROOT", raising=False)
+    monkeypatch.setenv("GEMMANIMA_ALLOW_LEGACY_MODEL_PATHS", "1")
+    legacy = tmp_path / "legacy.gguf"
+    legacy.write_bytes(b"legacy")
+
+    resolved = model_path("gemma_core", "base.gguf", legacy)
+
+    assert resolved == legacy
+
+
 def test_manifest_store_can_read_latest(tmp_path: Path) -> None:
     conductor = GemmAnimaConductor(
         session_id="manifest-test",

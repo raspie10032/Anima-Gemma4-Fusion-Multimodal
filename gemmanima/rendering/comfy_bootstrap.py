@@ -3,10 +3,12 @@ from __future__ import annotations
 import os
 import shlex
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib.machinery import ModuleSpec
 from pathlib import Path
 from types import ModuleType
+
+from gemmanima.core.model_paths import default_model_root
 
 
 _TORCHVISION_LIBRARY_SHIMS: list[object] = []
@@ -31,10 +33,12 @@ class NativeAttentionImportBlocker:
 
 @dataclass(frozen=True)
 class ComfyBootstrapConfig:
-    comfy_root: Path = Path(r"E:\ComfyUI_anima_exp")
-    models_root: Path = Path(r"E:\ComfyUI_sage\ComfyUI\models")
-    embedded_site_packages: Path = Path(r"E:\ComfyUI_sage\python_embeded\Lib\site-packages")
-    project_root: Path = Path(r"E:\anima_gemma_swap")
+    comfy_root: Path = field(default_factory=lambda: _env_path("GEMMANIMA_COMFY_ROOT", "ComfyUI"))
+    models_root: Path = field(default_factory=lambda: _env_path("GEMMANIMA_COMFY_MODELS_ROOT", str(default_model_root() / "comfy")))
+    embedded_site_packages: Path = field(
+        default_factory=lambda: _env_path("GEMMANIMA_COMFY_SITE_PACKAGES", ".venv/Lib/site-packages")
+    )
+    project_root: Path = field(default_factory=lambda: _env_path("GEMMANIMA_SWAP_PROJECT_ROOT", "."))
     model_folders: tuple[str, ...] = ("diffusion_models", "unet", "text_encoders", "clip", "vae", "loras")
 
 
@@ -99,6 +103,10 @@ def bootstrap_comfy(
         model_folders=model_folders,
         imported_folder_paths=True,
     )
+
+
+def _env_path(name: str, default: str) -> Path:
+    return Path(os.environ.get(name, default))
 
 
 def _resolved_comfy_args(comfy_args: tuple[str, ...]) -> list[str]:

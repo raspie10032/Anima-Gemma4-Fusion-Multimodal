@@ -15,18 +15,18 @@ from shutil import which
 from types import SimpleNamespace
 from typing import Any, Callable
 
-from gemmanima.core.model_paths import model_path
+from gemmanima.core.model_paths import allow_legacy_model_paths, model_path
 
 
-def _default_cli_path(env_name: str, executable: str, legacy_path: str) -> Path:
+def _default_cli_path(env_name: str, executable: str, legacy_path: str | None = None) -> Path:
     override = os.environ.get(env_name)
     if override:
         return Path(override)
     resolved = which(executable)
     if resolved:
         return Path(resolved)
-    legacy = Path(legacy_path)
-    if legacy.exists():
+    legacy = Path(legacy_path) if legacy_path is not None else None
+    if legacy is not None and allow_legacy_model_paths() and legacy.exists():
         return legacy
     return Path(executable)
 
@@ -34,34 +34,28 @@ def _default_cli_path(env_name: str, executable: str, legacy_path: str) -> Path:
 DEFAULT_TIPO_CLI = _default_cli_path(
     "GEMMANIMA_TIPO_VISION_CLI",
     "llama-mtmd-cli.exe",
-    r"D:\Projects\training\llama_b9209_cuda\llama-mtmd-cli.exe",
 )
 DEFAULT_TIPO_TEXT_CLI = _default_cli_path(
     "GEMMANIMA_TIPO_TEXT_CLI",
     "llama-cli.exe",
-    r"D:\Projects\training\llama_b9209_cuda\llama-cli.exe",
 )
 DEFAULT_TIPO_BASE_MODEL = model_path(
     "gemma_core",
     "gemma-4-E2B-it-heretic-ara-custom.Q4_K_M.gguf",
-    r"D:\Projects\training\out\gemma-4-E2B-it-heretic-ara-Q4_K_M.gguf",
 )
 DEFAULT_TIPO_TEXT_MODEL = DEFAULT_TIPO_BASE_MODEL
 DEFAULT_TIPO_VISION_MODEL = DEFAULT_TIPO_BASE_MODEL
 DEFAULT_TIPO_TEXT_LORA = model_path(
     "gemma_core",
     "text-adapter-model-f16.gguf",
-    r"D:\Projects\training\out\lora\adapter_model.f16.gguf",
 )
 DEFAULT_TIPO_VISION_LORA = model_path(
     "gemma_core",
     "vision-tagger-adapter-model-f16.gguf",
-    r"D:\Projects\training\out\gemmanima_v4_vision_tagger\adapter_model.f16.gguf",
 )
 DEFAULT_TIPO_VISION_MMPROJ = model_path(
     "gemma_core",
     "gemma4-tipo-vision.mmproj-f16.gguf",
-    r"D:\Projects\training\out\_completed\gemma4-tipo-vision.mmproj-f16.gguf",
 )
 
 DEFAULT_TAG_PROMPT = (

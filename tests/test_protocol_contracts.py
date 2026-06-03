@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from gemmanima.core.conductor import GemmAnimaConductor
+from gemmanima.core.config import EngineConfig, ModelConfig
 from gemmanima.core.manifest import Manifest
 from gemmanima.core.protocol import (
     PROTOCOL_VERSION,
@@ -135,10 +136,16 @@ def test_conditioning_bundle_can_record_split_conditioning_axes() -> None:
 
 
 def test_conductor_manifest_records_full_conditioning_bundle_contract(tmp_path: Path) -> None:
+    import torch
+
+    bridge = tmp_path / "kv_proj_hiddenstage_planner_v2.pt"
+    torch.save({"val_mse": 0.001, "kv": {f"k{i}": i for i in range(12)}}, bridge)
+    config = EngineConfig(models=ModelConfig(hiddenstage_bridge=bridge))
     conductor = GemmAnimaConductor(
         session_id="protocol-run-test",
         manifest_root=tmp_path / "manifests",
         image_root=tmp_path / "images",
+        config=config,
     )
 
     response = conductor.handle_user_message("draw a quiet moonlit cathedral")
