@@ -57,11 +57,11 @@
           "source": "raspie/gemmanima-adapter-bundle"
         },
         "balanced_pose": {
-          "relative_path": "hiddenstage_bridge/kv_proj_balanced_pose_153k_pose10k_a0p35.pt",
+          "relative_path": "hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt",
           "source": "raspie/gemmanima-adapter-bundle"
         },
         "style_artist": {
-          "relative_path": "hiddenstage_bridge/kv_proj_style_artist_v37a_10k.pt",
+          "relative_path": "hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt",
           "source": "raspie/gemmanima-adapter-bundle"
         },
         "text_exact": {

@@ -153,16 +153,15 @@ GemmAnima files:
 | `hiddenstage-planner-adapter.safetensors` | Planner LoRA adapter |
 | `hiddenstage-planner-embed-vision.pt` | Planner vision embedding |
 | `kv_proj_hiddenstage_planner_v2.pt` | HiddenStage bridge checkpoint |
-| `kv_proj_balanced_pose_153k_pose10k_a0p35.pt` | Prototype default bridge profile for general image generation and pose-sensitive prompts |
-| `kv_proj_style_artist_v37a_10k.pt` | Prototype bridge profile for style tags and rare surface tokens |
+| `kv_proj_text_delta_300k_from_epoch1_a0p35.pt` | Prototype default quality bridge profile used for normal image generation and style-tag prompts |
 | `kv_proj_text_exact_v27_alpha35.pt` | Prototype bridge profile for signs, labels, captions, and readable-text prompts |
 
 The standalone app routes bridge profiles automatically:
 
 | Profile | Automatic use |
 | --- | --- |
-| `balanced_pose` | Normal image-generation prompts |
-| `style_artist` | Style-oriented tags and surface-token-heavy prompts |
+| `balanced_pose` | Normal image-generation prompts; routed to `kv_proj_text_delta_300k_from_epoch1_a0p35.pt` |
+| `style_artist` | Style-oriented tags and surface-token-heavy prompts; routed to `kv_proj_text_delta_300k_from_epoch1_a0p35.pt` |
 | `text_exact` | Prompts asking for readable text, signs, labels, captions, or logos |
 | `legacy_mse` | Compatibility baseline and explicit override |
 
@@ -293,8 +292,7 @@ Still required before promotion:
     |-- hiddenstage-planner-adapter.safetensors
     |-- hiddenstage-planner-embed-vision.pt
     |-- kv_proj_hiddenstage_planner_v2.pt
-    |-- kv_proj_balanced_pose_153k_pose10k_a0p35.pt
-    |-- kv_proj_style_artist_v37a_10k.pt
+    |-- kv_proj_text_delta_300k_from_epoch1_a0p35.pt
     `-- kv_proj_text_exact_v27_alpha35.pt
 ```
 

@@ -72,9 +72,12 @@ in-process renderer keeps only tokenizer-format metadata for Anima conditioning.
 Runtime bridge profiles:
 
 - `balanced_pose` - default automatic bridge for general image generation,
-  composition, and pose-sensitive prompts.
+  composition, and quality-first prompts. In v0.1 it points to
+  `kv_proj_text_delta_300k_from_epoch1_a0p35.pt`.
 - `style_artist` - selected automatically for style-oriented tags and
-  rare surface-token prompts.
+  rare surface-token prompts. In v0.1 it also points to
+  `kv_proj_text_delta_300k_from_epoch1_a0p35.pt` because the earlier 10k
+  style bridge is undertrained.
 - `text_exact` - selected automatically for signs, labels, logos, captions, or
   prompts that ask for readable text.
 - `legacy_mse` - original MSE-gated bridge kept for compatibility and explicit

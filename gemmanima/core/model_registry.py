@@ -140,14 +140,14 @@ class ModelRegistry:
                 "hiddenstage_bridge",
                 "fusion_bridge_profile",
                 models.hiddenstage_bridge_balanced_pose,
-                adapter_source("hiddenstage_bridge/kv_proj_balanced_pose_153k_pose10k_a0p35.pt"),
+                adapter_source("hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt"),
             ),
             ModelAsset(
                 "hiddenstage_bridge.bridge_style_artist",
                 "hiddenstage_bridge",
                 "fusion_bridge_profile",
                 models.hiddenstage_bridge_style_artist,
-                adapter_source("hiddenstage_bridge/kv_proj_style_artist_v37a_10k.pt"),
+                adapter_source("hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt"),
             ),
             ModelAsset(
                 "hiddenstage_bridge.bridge_text_exact",

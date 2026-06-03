@@ -17,8 +17,8 @@ hiddenstage_bridge:
   planner_vision_embedding: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/hiddenstage-planner-embed-vision.pt"
   bridge_checkpoint: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_hiddenstage_planner_v2.pt"
   bridge_profiles:
-    balanced_pose: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_balanced_pose_153k_pose10k_a0p35.pt"
-    style_artist: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_style_artist_v37a_10k.pt"
+    balanced_pose: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt"
+    style_artist: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt"
     text_exact: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_text_exact_v27_alpha35.pt"
     legacy_mse: "${GEMMANIMA_MODEL_ROOT}/hiddenstage_bridge/kv_proj_hiddenstage_planner_v2.pt"
   default_runtime_profile: balanced_pose

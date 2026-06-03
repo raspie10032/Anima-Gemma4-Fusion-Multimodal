@@ -39,11 +39,11 @@ class ModelConfig:
     )
     hiddenstage_bridge_balanced_pose: Path = model_path(
         "hiddenstage_bridge",
-        "kv_proj_balanced_pose_153k_pose10k_a0p35.pt",
+        "kv_proj_text_delta_300k_from_epoch1_a0p35.pt",
     )
     hiddenstage_bridge_style_artist: Path = model_path(
         "hiddenstage_bridge",
-        "kv_proj_style_artist_v37a_10k.pt",
+        "kv_proj_text_delta_300k_from_epoch1_a0p35.pt",
     )
     hiddenstage_bridge_text_exact: Path = model_path(
         "hiddenstage_bridge",
@@ -56,15 +56,15 @@ class ModelConfig:
                 name="balanced_pose",
                 label="Balanced Pose",
                 checkpoint=self.hiddenstage_bridge_balanced_pose,
-                role="general image generation, composition, and pose-sensitive prompts",
-                notes="Default automatic image bridge for normal prompts; prototype routing checkpoint.",
+                role="general image generation, composition, and quality-first prompts",
+                notes="Default automatic image bridge; uses the 300k text-delta bridge because the 10k style bridge is undertrained.",
             ),
             "style_artist": BridgeProfile(
                 name="style_artist",
                 label="Style",
                 checkpoint=self.hiddenstage_bridge_style_artist,
                 role="style tags and rare surface-token prompt response",
-                notes="Prototype style-specialist bridge; not a text-rendering promotion checkpoint.",
+                notes="Routed to the same 300k text-delta bridge for v0.1 image quality stability; the 10k style-specialist bridge is not used by default.",
             ),
             "text_exact": BridgeProfile(
                 name="text_exact",

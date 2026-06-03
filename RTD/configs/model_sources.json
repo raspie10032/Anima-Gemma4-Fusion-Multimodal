@@ -61,13 +61,13 @@
                     "hiddenstage_bridge.bridge_balanced_pose":  {
                                                                     "origin":  "gemmanima_adapter_bundle",
                                                                     "repo_id":  "raspie/gemmanima-adapter-bundle",
-                                                                    "filename":  "hiddenstage_bridge/kv_proj_balanced_pose_153k_pose10k_a0p35.pt",
+                                                                    "filename":  "hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt",
                                                                     "license_id":  "other"
                                                                 },
                     "hiddenstage_bridge.bridge_style_artist":  {
                                                                    "origin":  "gemmanima_adapter_bundle",
                                                                    "repo_id":  "raspie/gemmanima-adapter-bundle",
-                                                                   "filename":  "hiddenstage_bridge/kv_proj_style_artist_v37a_10k.pt",
+                                                                   "filename":  "hiddenstage_bridge/kv_proj_text_delta_300k_from_epoch1_a0p35.pt",
                                                                    "license_id":  "other"
                                                                },
                     "hiddenstage_bridge.bridge_text_exact":  {
