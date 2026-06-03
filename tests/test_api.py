@@ -52,6 +52,36 @@ def test_handle_chat_payload_routes_tag_task_without_generation(tmp_path, monkey
     assert result["output_path"] is None
 
 
+def test_handle_chat_payload_cleans_tag_output_at_api_boundary(tmp_path, monkeypatch) -> None:
+    image_path = tmp_path / "input.png"
+    image_path.write_bytes(b"fake image")
+    raw_tags = (
+        "1girl, solo, <start_of_turn>user, You are a helpful assistant, "
+        "Hello<end_of_turn>, <start_of_turn>model, Hi there<end_of_turn>, "
+        + ", ".join(f"tag_{index}" for index in range(1, 40))
+    )
+
+    def fake_tag_image(*, image_path: str | Path, prompt: str | None = None, **kwargs):
+        return {
+            "status": "completed",
+            "tags": raw_tags,
+            "raw": raw_tags,
+            "stderr_tail": "",
+        }
+
+    monkeypatch.setattr("gemmanima.api.run_tipo_vision_tag", fake_tag_image)
+
+    result = handle_chat_payload(
+        {"task": "tag", "message": "tag this", "image_path": str(image_path)},
+        base_dir=tmp_path,
+    )
+
+    tags = [tag.strip() for tag in result["tags"].split(",")]
+    assert len(tags) == 24
+    assert tags[:4] == ["1girl", "solo", "tag_1", "tag_2"]
+    assert not any("<start_of_turn>" in tag or "<end_of_turn>" in tag for tag in tags)
+
+
 def test_handle_chat_payload_tag_task_requires_image_path(tmp_path) -> None:
     result = handle_chat_payload({"task": "tag", "message": "tag this"}, base_dir=tmp_path)
 
@@ -295,6 +325,42 @@ def test_handle_chat_payload_passes_selected_chat_mode(tmp_path, monkeypatch) ->
     assert result["status"] == "completed"
     assert result["chat_mode"] == "status_question"
     assert result["output_contract"] == "grounded_status_answer"
+
+
+def test_handle_chat_payload_passes_headroom_toggle_to_text_runtime(tmp_path, monkeypatch) -> None:
+    def fake_text_chat(**kwargs):
+        assert kwargs["config"].headroom_enabled is True
+        assert kwargs["config"].headroom_timeout_seconds == 0.25
+        return {
+            "status": "completed",
+            "message": "Headroom is enabled locally.",
+            "raw": "Headroom is enabled locally.",
+            "stderr_tail": "",
+            "seconds": 0.1,
+            "model": "chat.gguf",
+            "device": "CUDA0",
+            "language": "en",
+            "chat_mode": "general_chat",
+            "output_contract": "natural_language_answer",
+            "headroom": {"enabled": True, "used": False, "status": "unavailable"},
+            "warnings": ["Headroom context compressor is unavailable; continuing with uncompressed GemmAnima chat context."],
+        }
+
+    monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fake_text_chat)
+    result = handle_chat_payload(
+        {
+            "task": "chat",
+            "message": "Use compression?",
+            "language": "en",
+            "headroom_enabled": True,
+            "headroom_timeout_seconds": 0.25,
+        },
+        base_dir=tmp_path,
+    )
+
+    assert result["status"] == "completed"
+    assert result["headroom"]["status"] == "unavailable"
+    assert result["warnings"]
 
 
 def test_handle_chat_payload_propagates_tipo_preflight_failure(tmp_path, monkeypatch) -> None:

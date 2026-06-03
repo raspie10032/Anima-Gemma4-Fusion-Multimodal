@@ -19,6 +19,46 @@ from gemmanima.modules.tipo_runtime import initialize_tipo_text_runtime
 from gemmanima.ui import GUI_HTML
 
 
+DEFAULT_CHATBOT_NAME = "GemmAnima"
+
+
+def user_settings_path(app_root: str | Path | None = None) -> Path:
+    root = Path(app_root) if app_root is not None else Path.cwd()
+    return root / "settings" / "user_settings.json"
+
+
+def sanitize_chatbot_name(value: Any) -> str:
+    cleaned = " ".join(str(value or "").strip().split())
+    return (cleaned[:32] or DEFAULT_CHATBOT_NAME)
+
+
+def load_user_settings(app_root: str | Path | None = None) -> dict[str, Any]:
+    path = user_settings_path(app_root)
+    payload: dict[str, Any] = {}
+    configured = path.is_file()
+    if path.is_file():
+        try:
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                payload.update(loaded)
+        except (OSError, json.JSONDecodeError):
+            payload = {}
+    payload["chatbot_name"] = sanitize_chatbot_name(payload.get("chatbot_name"))
+    payload["configured"] = configured
+    return payload
+
+
+def save_user_settings(app_root: str | Path | None, payload: dict[str, Any]) -> dict[str, Any]:
+    current = load_user_settings(app_root)
+    if "chatbot_name" in payload:
+        current["chatbot_name"] = sanitize_chatbot_name(payload.get("chatbot_name"))
+    current["configured"] = True
+    path = user_settings_path(app_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return current
+
+
 def resolve_image_artifact(base_dir: str | Path, raw_path: str) -> Path | None:
     normalized = unquote(raw_path).replace("\\", "/")
     rel = PurePosixPath(normalized)
@@ -159,6 +199,7 @@ MODEL_DOWNLOAD_MANAGER = ModelDownloadManager()
 
 class GemmAnimaRequestHandler(BaseHTTPRequestHandler):
     base_dir = Path("runs")
+    app_root = Path.cwd()
     download_manager = MODEL_DOWNLOAD_MANAGER
 
     def do_GET(self) -> None:
@@ -172,6 +213,9 @@ class GemmAnimaRequestHandler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/models/download/status":
             self._send_json(200, self.download_manager.status())
             return
+        if parsed.path == "/v1/settings/chatbot-name":
+            self._send_json(200, load_user_settings(self.app_root))
+            return
         if parsed.path.startswith("/artifacts/images/"):
             raw_path = parsed.path.removeprefix("/artifacts/images/")
             target = resolve_image_artifact(self.base_dir, raw_path)
@@ -183,6 +227,13 @@ class GemmAnimaRequestHandler(BaseHTTPRequestHandler):
         self._send_json(404, {"error": "not found"})
 
     def do_POST(self) -> None:
+        if self.path == "/v1/settings/chatbot-name":
+            try:
+                payload = self._read_json()
+                self._send_json(200, save_user_settings(self.app_root, payload))
+            except json.JSONDecodeError:
+                self._send_json(400, {"status": "failed", "error": "invalid json"})
+            return
         if self.path == "/v1/models/download":
             try:
                 payload = self._read_json()
@@ -265,6 +316,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     GemmAnimaRequestHandler.base_dir = Path(args.base_dir)
+    GemmAnimaRequestHandler.app_root = Path.cwd()
     init_status = initialize_server_runtime()
     text_status = init_status.get("tipo_text", {})
     if text_status.get("status") == "completed":

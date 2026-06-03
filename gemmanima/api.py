@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,8 @@ from gemmanima.modules.in_process_anima_renderer import InProcessAnimaRendererAd
 from gemmanima.modules.local_worker_anima_renderer import LocalWorkerAnimaRendererAdapter
 from gemmanima.modules.real_anima_renderer import ExternalAnimaRendererAdapter
 from gemmanima.modules.tipo_runtime import (
+    TipoTextConfig,
+    clean_vision_tags,
     normalize_chat_mode,
     output_contract_for_mode,
     parse_image_generation_contract,
@@ -250,6 +253,20 @@ def _optional_bool(value: Any, *, default: bool = False) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "on", "y"}
 
 
+def build_tipo_text_config(payload: dict[str, Any]) -> TipoTextConfig:
+    config = TipoTextConfig()
+    if "headroom_enabled" in payload:
+        config = replace(
+            config,
+            headroom_enabled=_optional_bool(payload.get("headroom_enabled"), default=config.headroom_enabled),
+        )
+    if payload.get("headroom_model"):
+        config = replace(config, headroom_model=str(payload.get("headroom_model")).strip())
+    if _has_payload_value(payload, "headroom_timeout_seconds"):
+        config = replace(config, headroom_timeout_seconds=float(payload["headroom_timeout_seconds"]))
+    return config
+
+
 def _comfy_memory_args(payload: dict[str, Any]) -> tuple[str, ...]:
     args: list[str] = []
     memory_mode = str(payload.get("memory_mode") or "").strip().lower()
@@ -317,6 +334,7 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
             message=message,
             language=language,
             chat_mode=chat_mode,
+            config=build_tipo_text_config(payload),
             history=[
                 {"role": str(item.get("role", "")), "content": str(item.get("content", ""))}
                 for item in payload.get("history", ())
@@ -338,6 +356,8 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
                 "error": result.get("error", "chat generation failed"),
                 "error_code": result.get("error_code", "chat_generation_failed"),
                 "preflight": result.get("preflight"),
+                "headroom": result.get("headroom"),
+                "warnings": result.get("warnings", []),
                 "chat_mode": result.get("chat_mode") or chat_mode,
                 "output_contract": result.get("output_contract") or output_contract,
                 "progress": ["route:chat", "tipo_text:failed"],
@@ -403,6 +423,8 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
                     "tipo_model": result.get("model"),
                     "tipo_device": result.get("device"),
                     "tipo_seconds": result.get("seconds"),
+                    "headroom": result.get("headroom"),
+                    "warnings": result.get("warnings", []),
                 }
             )
             return response
@@ -426,6 +448,8 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
             "conflict": None,
             "job_id": None,
             "auto_route": auto_route,
+            "headroom": result.get("headroom"),
+            "warnings": result.get("warnings", []),
         }
 
     force_plan = task in {"generate", "generate_image", "image", "img"}
@@ -556,7 +580,7 @@ def handle_tag_payload(payload: dict[str, Any]) -> dict[str, Any]:
             "tags": result.get("tags", ""),
             "progress": ["route:tag", "tipo:failed"],
         }
-    tags = str(result.get("tags") or "").strip()
+    tags = clean_vision_tags(str(result.get("tags") or ""))
     return {
         "mode": "tag_image",
         "status": "completed",

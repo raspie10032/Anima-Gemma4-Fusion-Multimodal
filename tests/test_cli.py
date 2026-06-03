@@ -55,6 +55,35 @@ def test_cli_tag_image_uses_tipo_runtime(tmp_path, capsys, monkeypatch) -> None:
     assert payload["tags"] == "1girl, solo"
 
 
+def test_cli_tag_image_cleans_tag_output(tmp_path, capsys, monkeypatch) -> None:
+    image = tmp_path / "input.png"
+    image.write_bytes(b"x")
+    raw_tags = (
+        "1girl, solo, <start_of_turn>user, You are a helpful assistant, "
+        "Hello<end_of_turn>, <start_of_turn>model, Hi there<end_of_turn>, "
+        + ", ".join(f"tag_{index}" for index in range(1, 40))
+    )
+
+    def fake_tag_image(**kwargs):
+        return {
+            "status": "completed",
+            "tags": raw_tags,
+            "raw": raw_tags,
+            "stderr_tail": "",
+        }
+
+    monkeypatch.setattr("gemmanima.cli.run_tipo_vision_tag", fake_tag_image)
+
+    code = main(["tag-image", str(image), "--json"])
+
+    assert code == 0
+    payload = json.loads(capsys.readouterr().out)
+    tags = [tag.strip() for tag in payload["tags"].split(",")]
+    assert len(tags) == 24
+    assert tags[:4] == ["1girl", "solo", "tag_1", "tag_2"]
+    assert not any("<start_of_turn>" in tag or "<end_of_turn>" in tag for tag in tags)
+
+
 def test_cli_model_download_plan_reports_original_sources(capsys) -> None:
     code = main(["model-download-plan", "--json"])
 
@@ -65,3 +94,15 @@ def test_cli_model_download_plan_reports_original_sources(capsys) -> None:
     assert sources["gemma_core.shared_base_gguf"]["origin"] == "original_model_page"
     assert sources["gemma_core.shared_base_gguf"]["repo_id"] == "mradermacher/gemma-4-E2B-it-heretic-ara-custom-GGUF"
     assert sources["hiddenstage_bridge.bridge_checkpoint"]["origin"] == "gemmanima_adapter_bundle"
+
+
+def test_cli_dependency_audit_reports_no_auto_install_policy(capsys) -> None:
+    code = main(["dependency-audit", "--json"])
+
+    assert code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["auto_install_policy"] == "disabled"
+    assert payload["network_policy"] == "model assets only; no Python package installation at app launch"
+    dependency_names = {item["name"] for item in payload["dependencies"]}
+    assert "Embedded Headroom-style context compressor" in dependency_names
+    assert "llama-cpp-python" in dependency_names

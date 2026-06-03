@@ -451,6 +451,50 @@ GUI_HTML = r"""<!doctype html>
       color: #5d3511;
       font-size: 12px;
     }
+    .name-setup {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+      place-items: center;
+      padding: 18px;
+      background: rgba(18, 34, 42, .42);
+      backdrop-filter: blur(4px);
+    }
+    .name-setup.visible { display: grid; }
+    .name-card {
+      width: min(420px, calc(100vw - 36px));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+    .name-card h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+    .name-card p {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .name-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .secondary-action {
+      width: auto;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 750;
+    }
     .drop-overlay {
       position: fixed;
       inset: 0;
@@ -498,12 +542,23 @@ GUI_HTML = r"""<!doctype html>
   </style>
 </head>
 <body>
+  <div id="name-setup" class="name-setup" aria-modal="true" role="dialog" aria-labelledby="name-setup-title">
+    <div class="name-card">
+      <h2 id="name-setup-title">Name your chatbot</h2>
+      <p>This name is stored in this browser only and can be changed later.</p>
+      <label for="bot-name-input">Chatbot name</label>
+      <input id="bot-name-input" type="text" maxlength="32" value="GemmAnima" autocomplete="off">
+      <div class="name-actions">
+        <button id="bot-name-save" class="primary-action" type="button">Start chat</button>
+      </div>
+    </div>
+  </div>
   <div class="app-shell">
     <header class="topbar">
       <div class="identity">
-        <div class="avatar">G</div>
+        <div class="avatar" data-bot-name-target="avatar">G</div>
         <div class="title-block">
-          <h1>GemmAnima</h1>
+          <h1 data-bot-name-target="title">GemmAnima</h1>
           <div class="presence"><span id="presence-dot" class="presence-dot"></span><span id="top-status">연결 확인 중</span></div>
         </div>
       </div>
@@ -516,10 +571,10 @@ GUI_HTML = r"""<!doctype html>
       <section class="conversation" aria-label="채팅">
         <div id="chat-log" class="chat-log">
           <div class="message-row assistant">
-            <div class="mini-avatar">G</div>
+            <div class="mini-avatar" data-bot-name-target="avatar">G</div>
             <div>
               <div class="bubble">말을 걸거나 이미지를 요청해 주세요. 필요한 경우 첨부 이미지를 읽고, 그림 요청은 생성 단계로 넘깁니다.</div>
-              <div class="meta">Gemma resident runtime</div>
+              <div class="meta" data-bot-name-target="meta">GemmAnima resident runtime</div>
             </div>
           </div>
         </div>
@@ -649,6 +704,7 @@ GUI_HTML = r"""<!doctype html>
           <summary>고급 라우팅</summary>
           <div class="setting-body">
             <label for="force_task">경로 강제 지정</label>
+            <button id="bot-name-reset" class="secondary-action" type="button">Change chatbot name</button>
             <select id="force_task">
               <option value="">자동</option>
               <option value="chat">채팅</option>
@@ -664,6 +720,7 @@ GUI_HTML = r"""<!doctype html>
               <option value="status_question">상태 질문</option>
               <option value="file_checkpoint_question">파일/체크포인트 질문</option>
             </select>
+            <label><input id="headroom_enabled" type="checkbox"> Headroom 컨텍스트 압축</label>
           </div>
         </details>
 
@@ -705,10 +762,79 @@ GUI_HTML = r"""<!doctype html>
   <script>
     const $ = (id) => document.getElementById(id);
     const conversationHistory = [];
+    const DEFAULT_BOT_NAME = "GemmAnima";
     let currentConflict = null;
     let attachedImagePath = "";
     let attachedImageName = "";
     let dragDepth = 0;
+
+    function normalizeBotName(value) {
+      const cleaned = String(value || "").trim().replace(/\s+/g, " ");
+      return cleaned.slice(0, 32) || DEFAULT_BOT_NAME;
+    }
+
+    function loadBotName() {
+      return window.currentBotName || DEFAULT_BOT_NAME;
+    }
+
+    async function fetchBotName() {
+      const res = await fetch("/v1/settings/chatbot-name");
+      const data = await res.json();
+      const name = normalizeBotName(data.chatbot_name);
+      window.currentBotName = name;
+      applyBotName(name);
+      return data;
+    }
+
+    async function saveBotName(value) {
+      const name = normalizeBotName(value);
+      const res = await fetch("/v1/settings/chatbot-name", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({chatbot_name: name})
+      });
+      if (!res.ok) throw new Error("failed to save chatbot name");
+      const data = await res.json();
+      window.currentBotName = normalizeBotName(data.chatbot_name);
+      applyBotName(name);
+      return window.currentBotName;
+    }
+
+    function botInitial(name) {
+      const trimmed = normalizeBotName(name);
+      return trimmed.slice(0, 1).toUpperCase() || "G";
+    }
+
+    function applyBotName(name = loadBotName()) {
+      const normalized = normalizeBotName(name);
+      document.querySelectorAll('[data-bot-name-target="title"]').forEach((node) => {
+        node.textContent = normalized;
+      });
+      document.querySelectorAll('[data-bot-name-target="avatar"]').forEach((node) => {
+        node.textContent = botInitial(normalized);
+      });
+      document.querySelectorAll('[data-bot-name-target="meta"]').forEach((node) => {
+        node.textContent = `${normalized} resident runtime`;
+      });
+      document.title = normalized;
+      return normalized;
+    }
+
+    async function showNameSetupIfNeeded(force = false) {
+      const setup = $("name-setup");
+      if (!setup) return;
+      const data = await fetchBotName().catch(() => ({chatbot_name: DEFAULT_BOT_NAME, configured: false}));
+      const name = normalizeBotName(data.chatbot_name);
+      const hasStoredName = Boolean(data.configured);
+      $("bot-name-input").value = name;
+      applyBotName(name);
+      setup.classList.toggle("visible", force || !hasStoredName);
+      if (force || !hasStoredName) $("bot-name-input").focus();
+    }
+
+    function hideNameSetup() {
+      $("name-setup").classList.remove("visible");
+    }
 
     function statusClass(value) {
       if (value === true || value === "ok" || value === "completed") return "ok";
@@ -774,7 +900,7 @@ GUI_HTML = r"""<!doctype html>
       row.className = `message-row ${role}`;
       const avatar = document.createElement("div");
       avatar.className = "mini-avatar";
-      avatar.textContent = role === "user" ? "U" : role === "system" ? "!" : "G";
+      avatar.textContent = role === "user" ? "U" : role === "system" ? "!" : botInitial(loadBotName());
       const stack = document.createElement("div");
       const bubble = document.createElement("div");
       bubble.className = "bubble";
@@ -886,7 +1012,7 @@ GUI_HTML = r"""<!doctype html>
       row.className = "message-row assistant generation-pending-row";
       const avatar = document.createElement("div");
       avatar.className = "mini-avatar";
-      avatar.textContent = "G";
+      avatar.textContent = botInitial(loadBotName());
       const stack = document.createElement("div");
       const bubble = document.createElement("div");
       bubble.className = "bubble generation-pending";
@@ -1045,7 +1171,8 @@ GUI_HTML = r"""<!doctype html>
         sampler: $("sampler").value,
         scheduler: $("scheduler").value,
         seed: $("seed").value,
-        unet_dtype: $("dtype").value
+        unet_dtype: $("dtype").value,
+        headroom_enabled: $("headroom_enabled").checked
       };
       if (attachedImagePath) payload.reference_image_path = attachedImagePath;
       if (!forcedTask && shouldTagAttachedImage(message)) payload.task = "tag";
@@ -1266,6 +1393,24 @@ GUI_HTML = r"""<!doctype html>
     $("file-input").addEventListener("change", (event) => handleDroppedFiles(event.target.files));
     $("clear-attachment").addEventListener("click", () => setAttachment("", ""));
     $("settings-toggle").addEventListener("click", () => $("settings-panel").classList.toggle("collapsed"));
+    $("bot-name-save").addEventListener("click", async () => {
+      try {
+        await saveBotName($("bot-name-input").value);
+        hideNameSetup();
+        $("message").focus();
+      } catch (err) {
+        addBubble("system", String(err));
+      }
+    });
+    $("bot-name-reset").addEventListener("click", () => {
+      showNameSetupIfNeeded(true).catch((err) => addBubble("system", String(err)));
+    });
+    $("bot-name-input").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        $("bot-name-save").click();
+      }
+    });
     $("model-download").addEventListener("click", () => {
       startModelDownload()
         .then(() => addBubble("system", "모델 다운로드를 시작했습니다. 설정 패널에서 진행률을 볼 수 있습니다."))
@@ -1305,6 +1450,7 @@ GUI_HTML = r"""<!doctype html>
       $("result").textContent = String(err);
       addBubble("system", String(err));
     });
+    showNameSetupIfNeeded().catch((err) => addBubble("system", String(err)));
     setInterval(() => {
       refreshDownloadStatus().catch(() => {});
     }, 1000);

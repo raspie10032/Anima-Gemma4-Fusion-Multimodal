@@ -6,11 +6,14 @@ def test_single_windows_batch_launcher_is_available() -> None:
 
     assert path.exists(), "missing single user-facing launcher"
     text = path.read_text(encoding="utf-8")
+    assert text.isascii(), "Windows launcher messages must stay ASCII-only"
     assert 'cd /d "%~dp0"' in text
-    assert "python -m gemmanima.cli gui-command" in text
-    assert "python -m gemmanima.cli ensure-model-assets --json" in text
-    assert "python -m gemmanima.cli run" in text
-    assert "python -m gemmanima.cli tag-image" in text
+    assert 'set "PY=%VENV_DIR%\\Scripts\\python.exe"' in text
+    assert "python -m venv --system-site-packages" in text
+    assert '"%PY%" -m gemmanima.cli gui-command' in text
+    assert '"%PY%" -m gemmanima.cli ensure-model-assets --json' in text
+    assert '"%PY%" -m gemmanima.cli run' in text
+    assert '"%PY%" -m gemmanima.cli tag-image' in text
 
 
 def test_rtd_scripts_have_no_extra_windows_batch_launchers() -> None:

@@ -96,6 +96,24 @@ The source package itself is intentionally light. Real local chat, vision
 tagging, and image generation require the runtime libraries and model assets
 reported by the health check.
 
+GemmAnima is a source checkout, so the Windows launcher owns a local `.venv`.
+The first run is visible: `GemmAnima.bat` creates or reuses `.venv`, installs
+the checkout in editable mode, and then reports which runtime engines are
+available. After bootstrap, GUI startup does not perform hidden dependency
+installation.
+
+Runtime engines such as `llama-cpp-python`, PyTorch, Pillow, NumPy, and
+safetensors are CUDA/runtime choices. The source bootstrap creates `.venv` with
+`--system-site-packages` so an existing machine-level CUDA Python stack remains
+visible instead of being replaced by surprise downloads. Use:
+
+```powershell
+GemmAnima.bat health
+```
+
+to inspect what the current source environment can run. Network access in the
+app is reserved for visible first-run model asset downloads.
+
 ### 2. Clone
 
 ```powershell
@@ -103,22 +121,22 @@ git clone https://github.com/raspie10032/Anima-Gemma4-Fusion-Multimodal.git
 cd Anima-Gemma4-Fusion-Multimodal
 ```
 
-### 3. Create A Python Environment
+### 3. Bootstrap The Source Environment
 
 Windows PowerShell:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e .
-python -m pip install pytest
+.\GemmAnima.bat bootstrap
 ```
 
-Linux/macOS shell:
+The launcher uses `.venv\Scripts\python.exe` for all Windows commands after
+bootstrap. If `.venv` is missing, `GemmAnima.bat` will run the same visible
+bootstrap path before starting the requested command.
+
+Linux/macOS shell, for developers running without the Windows launcher:
 
 ```bash
-python -m venv .venv
+python -m venv --system-site-packages .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e .

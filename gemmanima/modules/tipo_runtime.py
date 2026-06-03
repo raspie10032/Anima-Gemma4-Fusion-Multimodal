@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import os
 import json
+import queue
 import re
 import subprocess
 import ctypes
 import base64
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace as dataclass_replace
 from pathlib import Path
 from shutil import which
+from types import SimpleNamespace
 from typing import Any, Callable
 
 from gemmanima.core.model_paths import model_path
@@ -67,6 +69,26 @@ DEFAULT_TAG_PROMPT = (
     "No thinking, no explanation, no sentences. Capture the image and plausibly "
     "expand it TIPO style. About 50 tags."
 )
+DEFAULT_VISION_TAG_LIMIT = 24
+VISION_TAG_TEMPLATE_LEAK_MARKERS = (
+    "<start_of_turn>",
+    "<end_of_turn>",
+    "you are a helpful assistant",
+    "output only",
+    "comma-separated",
+    "danbooru tags",
+    "no thinking",
+    "no explanation",
+    "no sentences",
+    "http://",
+    "https://",
+    "github.com",
+    "llama.cpp",
+)
+VISION_TAG_TEMPLATE_LEAK_EXACT = {
+    "hello",
+    "hi there",
+}
 
 
 @dataclass(frozen=True)
@@ -106,6 +128,42 @@ class TipoTextConfig:
     main_gpu: int = field(default_factory=lambda: _env_int("GEMMANIMA_TIPO_TEXT_MAIN_GPU", 0))
     flash_attn: bool = field(default_factory=lambda: _env_bool("GEMMANIMA_TIPO_TEXT_FLASH_ATTN", False))
     verbose: bool = field(default_factory=lambda: _env_bool("GEMMANIMA_TIPO_TEXT_VERBOSE", False))
+    headroom_enabled: bool = field(default_factory=lambda: _env_bool("GEMMANIMA_TIPO_TEXT_HEADROOM_ENABLED", False))
+    headroom_model: str = field(default_factory=lambda: os.environ.get("GEMMANIMA_TIPO_TEXT_HEADROOM_MODEL", "gemma-local"))
+    headroom_timeout_seconds: float = field(
+        default_factory=lambda: _env_float("GEMMANIMA_TIPO_TEXT_HEADROOM_TIMEOUT_SECONDS", 1.5)
+    )
+    headroom_target_ratio: float = field(
+        default_factory=lambda: _env_float("GEMMANIMA_TIPO_TEXT_HEADROOM_TARGET_RATIO", 0.4)
+    )
+    headroom_min_content_length: int = field(
+        default_factory=lambda: _env_int("GEMMANIMA_TIPO_TEXT_HEADROOM_MIN_CONTENT_LENGTH", 800)
+    )
+    headroom_protect_recent: int = field(
+        default_factory=lambda: _env_int("GEMMANIMA_TIPO_TEXT_HEADROOM_PROTECT_RECENT", 2)
+    )
+
+
+@dataclass(frozen=True)
+class HeadroomCompression:
+    message: str
+    history: list[dict[str, str]]
+    status: str
+    used: bool
+    warning: str = ""
+    original_turns: int = 0
+    compressed_turns: int = 0
+    tokens_before: int = 0
+    tokens_after: int = 0
+    tokens_saved: int = 0
+    compression_ratio: float = 0.0
+    transforms_applied: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class ChatPrompt:
+    text: str
+    headroom: HeadroomCompression
 
 
 Runner = Callable[..., Any]
@@ -293,6 +351,8 @@ class TipoTextRuntime:
         history: list[dict[str, str]] | tuple[dict[str, str], ...] = (),
         language: str = "ko",
         chat_mode: str | None = None,
+        headroom_enabled: bool | None = None,
+        headroom_model: str | None = None,
     ) -> dict[str, Any]:
         selected_language = normalize_language(language)
         selected_chat_mode = normalize_chat_mode(chat_mode)
@@ -310,11 +370,17 @@ class TipoTextRuntime:
                 preflight=init_status.get("preflight"),
             )
 
+        prompt_config = self.config
+        if headroom_enabled is not None:
+            prompt_config = dataclass_replace(prompt_config, headroom_enabled=headroom_enabled)
+        if headroom_model:
+            prompt_config = dataclass_replace(prompt_config, headroom_model=headroom_model)
         prompt = _chat_prompt(
             message,
             history,
             language=selected_language,
             chat_mode=selected_chat_mode,
+            config=prompt_config,
         )
         start = self._timer()
         adapter_status: dict[str, Any] = {}
@@ -322,7 +388,7 @@ class TipoTextRuntime:
             with self._lock:
                 adapter_status = self._adapter_backend.apply(self._model, self.config.lora_paths)
                 output = self._model(
-                    prompt,
+                    prompt.text,
                     max_tokens=self.config.max_new_tokens,
                     temperature=self.config.temperature,
                     seed=self.config.seed,
@@ -351,6 +417,7 @@ class TipoTextRuntime:
             chat_mode=selected_chat_mode,
             output_contract=output_contract,
             runtime="in-process",
+            headroom=prompt.headroom,
         )
         result.update(adapter_status)
         return result
@@ -443,7 +510,7 @@ class TipoTextRuntime:
         result = {
             "status": "completed",
             "error": "",
-            "tags": _parse_tags(raw),
+            "tags": clean_vision_tags(raw),
             "raw": raw,
             "stderr_tail": "",
             "seconds": round(self._timer() - start, 3),
@@ -545,6 +612,8 @@ def run_tipo_text_chat(
             history=history,
             language=selected_language,
             chat_mode=selected_chat_mode,
+            headroom_enabled=cfg.headroom_enabled,
+            headroom_model=cfg.headroom_model,
         )
 
     missing = _missing_text_assets(cfg)
@@ -577,6 +646,7 @@ def run_tipo_text_chat(
         history,
         language=selected_language,
         chat_mode=selected_chat_mode,
+        config=cfg,
     )
     cmd = [
         str(cfg.cli),
@@ -595,7 +665,7 @@ def run_tipo_text_chat(
         "--seed",
         str(cfg.seed),
         "-p",
-        prompt,
+        prompt.text,
     ]
     if cfg.device:
         cmd[cmd.index("-ngl"):cmd.index("-ngl")] = ["-dev", cfg.device]
@@ -654,6 +724,7 @@ def run_tipo_text_chat(
         chat_mode=selected_chat_mode,
         output_contract=output_contract,
         runtime="cli",
+        headroom=prompt.headroom,
     )
 
 
@@ -669,6 +740,7 @@ def _text_chat_result_from_raw(
     chat_mode: str,
     output_contract: str,
     runtime: str,
+    headroom: HeadroomCompression | None = None,
 ) -> dict[str, Any]:
     text = _parse_text(raw)
     status = "completed" if returncode == 0 else "failed"
@@ -688,7 +760,7 @@ def _text_chat_result_from_raw(
             negative_prompt = image_generation["negative_prompt"]
             notes = image_generation["notes"]
             text = notes or prompt
-    return {
+    result = {
         "status": status,
         "error": error,
         "message": text,
@@ -707,6 +779,11 @@ def _text_chat_result_from_raw(
         "output_contract": output_contract,
         "runtime": runtime,
     }
+    if headroom is not None:
+        result["headroom"] = _headroom_status_dict(headroom)
+        if headroom.warning:
+            result["warnings"] = [headroom.warning]
+    return result
 
 
 def _text_cli_failure(
@@ -963,7 +1040,7 @@ def run_tipo_vision_tag(
     seconds = round(timer() - start, 3)
     raw = proc.stdout or ""
     stderr = proc.stderr or ""
-    tags = _parse_tags(raw)
+    tags = clean_vision_tags(raw)
     status = "completed" if proc.returncode == 0 else "failed"
     error = "" if status == "completed" else (stderr or raw)[-1000:]
     return {
@@ -1289,25 +1366,352 @@ def _decode_json_objects(text: str) -> list[Any]:
     return objects
 
 
+def compress_chat_context_with_headroom(
+    *,
+    message: str,
+    history: list[dict[str, str]] | tuple[dict[str, str], ...],
+    enabled: bool,
+    model: str = "gemma-local",
+    compressor_loader: Callable[[], Callable[..., Any]] | None = None,
+    timeout_seconds: float = 1.5,
+    target_ratio: float = 0.4,
+    min_content_length: int = 800,
+    protect_recent: int = 2,
+) -> HeadroomCompression:
+    normalized_history = _normalize_chat_messages(history)
+    clean_message = str(message or "").strip()
+    original_turns = len(normalized_history) + (1 if clean_message else 0)
+    if not enabled:
+        return HeadroomCompression(
+            message=clean_message,
+            history=normalized_history,
+            status="disabled",
+            used=False,
+            original_turns=original_turns,
+            compressed_turns=original_turns,
+        )
+
+    try:
+        compressor = compressor_loader() if compressor_loader is not None else _load_headroom_compress()
+    except ImportError:
+        return HeadroomCompression(
+            message=clean_message,
+            history=normalized_history,
+            status="unavailable",
+            used=False,
+            warning="Headroom context compressor is unavailable; continuing with uncompressed GemmAnima chat context.",
+            original_turns=original_turns,
+            compressed_turns=original_turns,
+        )
+    except Exception as exc:
+        return HeadroomCompression(
+            message=clean_message,
+            history=normalized_history,
+            status="failed",
+            used=False,
+            warning=f"Headroom compression failed before chat context packing: {exc}",
+            original_turns=original_turns,
+            compressed_turns=original_turns,
+        )
+
+    messages = [*normalized_history, {"role": "user", "content": clean_message}]
+    try:
+        compressed = _run_headroom_compressor(
+            compressor,
+            messages,
+            model=model,
+            timeout_seconds=timeout_seconds,
+            target_ratio=target_ratio,
+            min_content_length=min_content_length,
+            protect_recent=protect_recent,
+        )
+    except TimeoutError:
+        return HeadroomCompression(
+            message=clean_message,
+            history=normalized_history,
+            status="timeout",
+            used=False,
+            warning="Headroom compression timed out; continuing with uncompressed GemmAnima chat context.",
+            original_turns=original_turns,
+            compressed_turns=original_turns,
+        )
+    except Exception as exc:
+        return HeadroomCompression(
+            message=clean_message,
+            history=normalized_history,
+            status="failed",
+            used=False,
+            warning=f"Headroom compression failed; continuing with uncompressed GemmAnima chat context: {exc}",
+            original_turns=original_turns,
+            compressed_turns=original_turns,
+        )
+
+    compressed_messages = _coerce_headroom_messages(compressed)
+    if not compressed_messages:
+        return HeadroomCompression(
+            message=clean_message,
+            history=normalized_history,
+            status="failed",
+            used=False,
+            warning="Headroom compression returned no usable messages; continuing with uncompressed GemmAnima chat context.",
+            original_turns=original_turns,
+            compressed_turns=original_turns,
+        )
+    compressed_current = compressed_messages[-1]
+    compressed_history = compressed_messages[:-1]
+    tokens_before = _safe_int(getattr(compressed, "tokens_before", 0))
+    tokens_after = _safe_int(getattr(compressed, "tokens_after", 0))
+    tokens_saved = _safe_int(getattr(compressed, "tokens_saved", 0))
+    changed = compressed_messages != messages
+    used = changed or tokens_saved > 0
+    return HeadroomCompression(
+        message=compressed_current["content"],
+        history=compressed_history,
+        status="compressed" if used else "passthrough",
+        used=used,
+        original_turns=original_turns,
+        compressed_turns=len(compressed_messages),
+        tokens_before=tokens_before,
+        tokens_after=tokens_after,
+        tokens_saved=tokens_saved,
+        compression_ratio=_safe_float(getattr(compressed, "compression_ratio", 0.0)),
+        transforms_applied=[
+            str(item)
+            for item in (getattr(compressed, "transforms_applied", None) or [])
+        ],
+    )
+
+
+def _run_headroom_compressor(
+    compressor: Callable[..., Any],
+    messages: list[dict[str, str]],
+    *,
+    model: str,
+    timeout_seconds: float,
+    target_ratio: float = 0.4,
+    min_content_length: int = 800,
+    protect_recent: int = 2,
+) -> Any:
+    kwargs = {
+        "model": model,
+        "target_ratio": target_ratio,
+        "min_content_length": min_content_length,
+        "protect_recent": protect_recent,
+    }
+    if timeout_seconds <= 0:
+        return compressor(messages, **kwargs)
+    result_queue: queue.Queue[tuple[str, Any]] = queue.Queue(maxsize=1)
+
+    def worker() -> None:
+        try:
+            result_queue.put(("result", compressor(messages, **kwargs)))
+        except BaseException as exc:  # pragma: no cover - defensive boundary
+            result_queue.put(("error", exc))
+
+    thread = threading.Thread(target=worker, name="headroom-compress", daemon=True)
+    thread.start()
+    try:
+        kind, value = result_queue.get(timeout=timeout_seconds)
+    except queue.Empty as exc:
+        raise TimeoutError("headroom compression timed out") from exc
+    if kind == "error":
+        raise value
+    return value
+
+
+def _load_headroom_compress() -> Callable[..., Any]:
+    return _compress_messages_with_embedded_headroom
+
+
+def _compress_messages_with_embedded_headroom(
+    messages: list[dict[str, str]],
+    *,
+    model: str = "gemma-local",
+    target_ratio: float = 0.4,
+    min_content_length: int = 800,
+    protect_recent: int = 2,
+) -> Any:
+    protected_from = max(0, len(messages) - max(0, protect_recent))
+    compressed_messages: list[dict[str, str]] = []
+    tokens_before = 0
+    tokens_after = 0
+    transforms_applied: list[str] = []
+    for index, message in enumerate(messages):
+        role = str(message.get("role", "")).strip() or "user"
+        content = str(message.get("content", "")).strip()
+        if not content:
+            continue
+        if index >= protected_from or len(content) < min_content_length:
+            compressed_messages.append({"role": role, "content": content})
+            estimated = _estimate_headroom_tokens(content)
+            tokens_before += estimated
+            tokens_after += estimated
+            continue
+        compressed_text = _compress_headroom_text(content, target_ratio=target_ratio)
+        compressed_messages.append({"role": role, "content": compressed_text})
+        before = _estimate_headroom_tokens(content)
+        after = _estimate_headroom_tokens(compressed_text)
+        tokens_before += before
+        tokens_after += after
+        if after < before:
+            transforms_applied.append("headroom:embedded")
+    tokens_saved = max(0, tokens_before - tokens_after)
+    return SimpleNamespace(
+        messages=compressed_messages,
+        tokens_before=tokens_before,
+        tokens_after=tokens_after,
+        tokens_saved=tokens_saved,
+        compression_ratio=(tokens_saved / tokens_before if tokens_before else 0.0),
+        transforms_applied=sorted(set(transforms_applied)),
+        model=model,
+    )
+
+
+def _compress_headroom_text(content: str, *, target_ratio: float) -> str:
+    ratio = max(0.05, min(0.95, target_ratio))
+    target_len = max(64, int(len(content) * ratio))
+    if len(content) <= target_len:
+        return content
+    marker = "\n...[compressed by GemmAnima embedded Headroom-style context compressor]...\n"
+    available = max(1, target_len - len(marker))
+    keep_start = max(1, available * 2 // 3)
+    keep_end = max(1, available - keep_start)
+    return content[:keep_start].rstrip() + marker + content[-keep_end:].lstrip()
+
+
+def _normalize_chat_messages(
+    history: list[dict[str, str]] | tuple[dict[str, str], ...],
+) -> list[dict[str, str]]:
+    messages: list[dict[str, str]] = []
+    for turn in history:
+        if not isinstance(turn, dict):
+            continue
+        role = str(turn.get("role", "")).strip() or "user"
+        content = str(turn.get("content", "")).strip()
+        if content:
+            messages.append({"role": role, "content": content})
+    return messages
+
+
+def _coerce_headroom_messages(value: Any) -> list[dict[str, str]]:
+    if hasattr(value, "messages"):
+        value = getattr(value, "messages")
+    if isinstance(value, dict):
+        value = value.get("messages") or value.get("compressed_messages") or value.get("data") or []
+    if isinstance(value, str):
+        return [{"role": "user", "content": value.strip()}] if value.strip() else []
+    if not isinstance(value, list):
+        return []
+    messages: list[dict[str, str]] = []
+    for item in value:
+        if isinstance(item, dict):
+            role = str(item.get("role", "")).strip() or "user"
+            content = item.get("content", "")
+        else:
+            role = "user"
+            content = item
+        if isinstance(content, list):
+            content = " ".join(str(part.get("text", part)) if isinstance(part, dict) else str(part) for part in content)
+        content_text = str(content or "").strip()
+        if content_text:
+            messages.append({"role": role, "content": content_text})
+    return messages
+
+
+def _headroom_status_dict(headroom: HeadroomCompression) -> dict[str, Any]:
+    return {
+        "enabled": headroom.status != "disabled",
+        "used": headroom.used,
+        "status": headroom.status,
+        "warning": headroom.warning,
+        "original_turns": headroom.original_turns,
+        "compressed_turns": headroom.compressed_turns,
+        "tokens_before": headroom.tokens_before,
+        "tokens_after": headroom.tokens_after,
+        "tokens_saved": headroom.tokens_saved,
+        "compression_ratio": headroom.compression_ratio,
+        "transforms_applied": headroom.transforms_applied,
+    }
+
+
+def _safe_int(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _safe_float(value: Any) -> float:
+    try:
+        return float(value or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _estimate_headroom_tokens(text: str) -> int:
+    return max(1, len(text) // 4)
+
+
 def _chat_prompt(
     message: str,
     history: list[dict[str, str]] | tuple[dict[str, str], ...],
     *,
     language: str = "ko",
     chat_mode: str | None = None,
-) -> str:
+    config: TipoTextConfig | None = None,
+) -> ChatPrompt:
+    cfg = config or TipoTextConfig()
+    compressed = compress_chat_context_with_headroom(
+        message=message,
+        history=history,
+        enabled=cfg.headroom_enabled,
+        model=cfg.headroom_model,
+        timeout_seconds=cfg.headroom_timeout_seconds,
+        target_ratio=cfg.headroom_target_ratio,
+        min_content_length=cfg.headroom_min_content_length,
+        protect_recent=cfg.headroom_protect_recent,
+    )
     lines = [
         build_language_harness(language),
         build_chat_contract_harness(chat_mode),
     ]
-    for turn in history[-8:]:
+    history_lines = _pack_chat_history_lines(
+        compressed.history[-8:],
+        base_lines=lines,
+        current_message=compressed.message,
+        n_ctx=cfg.n_ctx,
+        max_new_tokens=cfg.max_new_tokens,
+    )
+    lines.extend(history_lines)
+    lines.append(f"user: {compressed.message}")
+    lines.append("assistant:")
+    return ChatPrompt(text="\n".join(lines), headroom=compressed)
+
+
+def _pack_chat_history_lines(
+    history: list[dict[str, str]],
+    *,
+    base_lines: list[str],
+    current_message: str,
+    n_ctx: int,
+    max_new_tokens: int,
+) -> list[str]:
+    budget = max(128, n_ctx - max_new_tokens - 128)
+    fixed = [*base_lines, f"user: {current_message}", "assistant:"]
+    used = _estimate_headroom_tokens("\n".join(fixed))
+    packed_reversed: list[str] = []
+    for turn in reversed(history):
         role = str(turn.get("role", "")).strip() or "user"
         content = str(turn.get("content", "")).strip()
-        if content:
-            lines.append(f"{role}: {content}")
-    lines.append(f"user: {message.strip()}")
-    lines.append("assistant:")
-    return "\n".join(lines)
+        if not content:
+            continue
+        line = f"{role}: {content}"
+        line_tokens = _estimate_headroom_tokens(line)
+        if used + line_tokens > budget:
+            continue
+        packed_reversed.append(line)
+        used += line_tokens
+    return list(reversed(packed_reversed))
 
 
 def _parse_text(raw: str) -> str:
@@ -1340,3 +1744,31 @@ def _parse_tags(raw: str) -> str:
             continue
         lines.append(stripped.rstrip(":."))
     return ", ".join(lines).strip()
+
+
+def clean_vision_tags(raw: str, *, max_tags: int = DEFAULT_VISION_TAG_LIMIT) -> str:
+    tags: list[str] = []
+    seen: set[str] = set()
+    for line in str(raw or "").splitlines():
+        stripped_line = line.strip().strip("`").strip()
+        if not stripped_line:
+            continue
+        lowered_line = stripped_line.lower()
+        if lowered_line.startswith(("main:", "load:", "llama", "clip", "image decoded")):
+            continue
+        for item in stripped_line.split(","):
+            tag = item.strip().strip("`'\"").strip().rstrip(":.")
+            if not tag:
+                continue
+            lowered = tag.lower()
+            if lowered in VISION_TAG_TEMPLATE_LEAK_EXACT:
+                continue
+            if any(marker in lowered for marker in VISION_TAG_TEMPLATE_LEAK_MARKERS):
+                continue
+            if lowered in seen:
+                continue
+            seen.add(lowered)
+            tags.append(tag)
+            if len(tags) >= max_tags:
+                return ", ".join(tags)
+    return ", ".join(tags)

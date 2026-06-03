@@ -5,6 +5,9 @@ description = "GemmAnima hidden-stage control backend scaffold"
 requires-python = ">=3.10"
 license = { file = "LICENSE.md" }
 
+[tool.setuptools.packages.find]
+include = ["gemmanima*"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]

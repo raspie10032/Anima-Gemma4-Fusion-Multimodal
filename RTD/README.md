@@ -15,6 +15,22 @@ Use `..\GemmAnima.bat` as the only Windows launcher. It intentionally collects
 GUI startup, health checks, downloads, dry-run smoke, tagging, and tests behind
 one executable-style entry point.
 
+Because the project is distributed as source, the launcher also owns the local
+`.venv`. Run `..\GemmAnima.bat bootstrap` once on a fresh checkout, or let the
+first launcher command perform the same visible bootstrap path. The venv is
+created with `--system-site-packages` so existing CUDA Python runtimes can be
+reused instead of silently replaced.
+
+The chat UI includes an optional embedded Headroom-style context compressor.
+It follows the local-history compression idea from
+`chopratejas/headroom`, but the runtime compressor is built into GemmAnima and
+does not install or call an external package or service.
+
+The launcher does not perform hidden package installation after bootstrap. Use
+`dependency-audit` to inspect which runtime engines are available; missing
+runtime engines should be solved intentionally in the source/runtime
+environment, not by surprise install steps at GUI start.
+
 The runtime model set is split into three named parts:
 
 ### Gemma Core
@@ -84,7 +100,7 @@ These profiles are prototype routing choices, not promoted production models.
 From the repo root:
 
 ```powershell
-python -m gemmanima.cli model-download-plan --json
+.\GemmAnima.bat bootstrap
 .\GemmAnima.bat health
 ```
 

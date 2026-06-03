@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from gemmanima import GemmAnimaConductor
+from gemmanima.core.dependencies import dependency_audit
 from gemmanima.core.manifest import ManifestStore
 from gemmanima.core.model_registry import ModelRegistry
 from gemmanima.training.readiness import build_training_readiness_report, write_training_readiness_report
@@ -128,7 +129,7 @@ from gemmanima.training.evaluation import audit_bridge_checkpoint
 from gemmanima.training.rebalance import build_rebalance_subsets
 from gemmanima.training.real_render import audit_real_render_dependencies, build_real_render_command
 from gemmanima.modules.real_anima_renderer import ExternalAnimaRendererAdapter
-from gemmanima.modules.tipo_runtime import DEFAULT_TAG_PROMPT, run_tipo_vision_tag
+from gemmanima.modules.tipo_runtime import DEFAULT_TAG_PROMPT, clean_vision_tags, run_tipo_vision_tag
 from gemmanima.rendering.backends import audit_renderer_backend, renderer_backend_profile
 from gemmanima.rendering.image_state_engine import image_state_engine_status
 from gemmanima.training.real_render import DEFAULT_EMBEDDED_PYTHON
@@ -166,6 +167,9 @@ def main(argv: list[str] | None = None) -> int:
 
     health_parser = subparsers.add_parser("health", help="Print model registry health.")
     health_parser.add_argument("--json", action="store_true")
+
+    dependency_parser = subparsers.add_parser("dependency-audit", help="Print runtime dependency readiness without installing packages.")
+    dependency_parser.add_argument("--json", action="store_true")
 
     download_plan_parser = subparsers.add_parser("model-download-plan", help="Print first-run model download sources.")
     download_plan_parser.add_argument("--json", action="store_true")
@@ -961,6 +965,7 @@ def main(argv: list[str] | None = None) -> int:
         "run",
         "tag-image",
         "health",
+        "dependency-audit",
         "model-download-plan",
         "ensure-model-assets",
         "latest-manifest",
@@ -1058,6 +1063,18 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{marker} {name}: {item['path']}")
         return 0
 
+    if args.command == "dependency-audit":
+        payload = dependency_audit()
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            print(f"status: {payload['status']}")
+            print(f"auto_install_policy: {payload['auto_install_policy']}")
+            for item in payload["dependencies"]:
+                marker = "ok" if item["available"] else "missing"
+                print(f"{marker} {item['name']} ({item['kind']}): {item['bundled_policy']}")
+        return 0
+
     if args.command == "model-download-plan":
         payload = ModelRegistry().download_plan()
         if args.json:
@@ -1079,11 +1096,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "tag-image":
         result = run_tipo_vision_tag(image_path=Path(args.image_path), prompt=args.prompt)
+        tags = clean_vision_tags(str(result.get("tags") or ""))
         payload = {
             "mode": "tag_image",
             "status": result.get("status", "failed"),
-            "tags": result.get("tags", ""),
-            "message": result.get("tags", ""),
+            "tags": tags,
+            "message": tags,
             "seconds": result.get("seconds"),
             "model": result.get("model"),
             "mmproj": result.get("mmproj"),

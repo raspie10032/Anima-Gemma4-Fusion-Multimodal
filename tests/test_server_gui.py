@@ -3,8 +3,11 @@ from pathlib import Path
 from gemmanima.server import (
     GemmAnimaRequestHandler,
     initialize_server_runtime,
+    load_user_settings,
     resolve_image_artifact,
     save_upload_data_url,
+    save_user_settings,
+    user_settings_path,
 )
 from gemmanima.ui import GUI_HTML
 
@@ -41,6 +44,8 @@ def test_gui_html_contains_api_hooks() -> None:
     assert "language:" in GUI_HTML
     assert 'id="force_task"' in GUI_HTML
     assert 'id="force_chat_mode"' in GUI_HTML
+    assert 'id="headroom_enabled"' in GUI_HTML
+    assert "headroom_enabled:" in GUI_HTML
     assert 'task: $("force_task").value || "auto"' in GUI_HTML
     assert "payload.chat_mode = forcedChatMode" in GUI_HTML
     assert "<summary>" in GUI_HTML
@@ -104,6 +109,40 @@ def test_gui_html_contains_api_hooks() -> None:
     assert "이미지 생성 요청을 어떻게 구분" in GUI_HTML
     assert "이미지를 만들어줘" in GUI_HTML
     assert "not image" in GUI_HTML
+
+
+def test_gui_html_supports_first_run_bot_name_setup() -> None:
+    assert 'id="name-setup"' in GUI_HTML
+    assert 'id="bot-name-input"' in GUI_HTML
+    assert 'id="bot-name-save"' in GUI_HTML
+    assert 'id="bot-name-reset"' in GUI_HTML
+    assert "/v1/settings/chatbot-name" in GUI_HTML
+    assert "localStorage" not in GUI_HTML
+    assert "loadBotName" in GUI_HTML
+    assert "saveBotName" in GUI_HTML
+    assert "applyBotName" in GUI_HTML
+    assert "showNameSetupIfNeeded" in GUI_HTML
+    assert 'data-bot-name-target="title"' in GUI_HTML
+    assert 'data-bot-name-target="avatar"' in GUI_HTML
+    assert 'data-bot-name-target="meta"' in GUI_HTML
+
+
+def test_user_settings_are_saved_under_app_root_settings_dir(tmp_path: Path) -> None:
+    path = user_settings_path(tmp_path)
+
+    assert path == tmp_path / "settings" / "user_settings.json"
+
+    saved = save_user_settings(tmp_path, {"chatbot_name": "Mina"})
+
+    assert saved["chatbot_name"] == "Mina"
+    assert path.is_file()
+    assert load_user_settings(tmp_path)["chatbot_name"] == "Mina"
+
+
+def test_user_settings_sanitize_blank_chatbot_name(tmp_path: Path) -> None:
+    saved = save_user_settings(tmp_path, {"chatbot_name": "   "})
+
+    assert saved["chatbot_name"] == "GemmAnima"
 
 
 def test_server_root_uses_gui_html() -> None:

@@ -4,6 +4,7 @@ import os
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
+import time
 
 from gemmanima.modules.tipo_runtime import (
     DEFAULT_TIPO_BASE_MODEL,
@@ -14,6 +15,10 @@ from gemmanima.modules.tipo_runtime import (
     TipoVisionConfig,
     build_chat_contract_harness,
     build_language_harness,
+    clean_vision_tags,
+    compress_chat_context_with_headroom,
+    _compress_messages_with_embedded_headroom,
+    _chat_prompt,
     _parse_text,
     parse_image_generation_contract,
     run_tipo_text_chat,
@@ -75,6 +80,25 @@ def test_tipo_vision_tag_builds_4070_pinned_mtmd_command(tmp_path) -> None:
     assert os.environ.get("CUDA_VISIBLE_DEVICES") == original_visible_devices
     assert result["tags"] == "1girl, solo, cat ears"
     assert result["seconds"] == 0.5
+
+
+def test_clean_vision_tags_limits_count_and_removes_chat_template_leaks() -> None:
+    raw = (
+        "1girl, solo, <start_of_turn>user, You are a helpful assistant, "
+        "Hello<end_of_turn>, <start_of_turn>model, Hi there<end_of_turn>, "
+        "https://github.com/ggml-org/llama.cpp/discussions/13759, "
+        + ", ".join(f"tag_{index}" for index in range(1, 40))
+    )
+
+    cleaned = clean_vision_tags(raw)
+    tags = [tag.strip() for tag in cleaned.split(",")]
+
+    assert len(tags) == 24
+    assert tags[:4] == ["1girl", "solo", "tag_1", "tag_2"]
+    assert not any("<start_of_turn>" in tag or "<end_of_turn>" in tag for tag in tags)
+    assert not any("github.com" in tag for tag in tags)
+    assert "You are a helpful assistant" not in tags
+    assert "Hi there" not in tags
 
 
 def test_tipo_vision_defaults_do_not_pin_a_machine_specific_gpu() -> None:
@@ -208,6 +232,10 @@ def test_tipo_text_config_can_be_overridden_by_environment(monkeypatch) -> None:
     monkeypatch.setenv("GEMMANIMA_TIPO_TEXT_DEVICE", "CUDA2")
     monkeypatch.setenv("GEMMANIMA_TIPO_TEXT_TIMEOUT_SECONDS", "17")
     monkeypatch.setenv("GEMMANIMA_TIPO_TEXT_N_CTX", "2048")
+    monkeypatch.setenv("GEMMANIMA_TIPO_TEXT_HEADROOM_ENABLED", "1")
+    monkeypatch.setenv("GEMMANIMA_TIPO_TEXT_HEADROOM_TARGET_RATIO", "0.35")
+    monkeypatch.setenv("GEMMANIMA_TIPO_TEXT_HEADROOM_MIN_CONTENT_LENGTH", "128")
+    monkeypatch.setenv("GEMMANIMA_TIPO_TEXT_HEADROOM_PROTECT_RECENT", "3")
 
     cfg = TipoTextConfig()
 
@@ -215,6 +243,177 @@ def test_tipo_text_config_can_be_overridden_by_environment(monkeypatch) -> None:
     assert cfg.device == "CUDA2"
     assert cfg.timeout_seconds == 17
     assert cfg.n_ctx == 2048
+    assert cfg.headroom_enabled is True
+    assert cfg.headroom_target_ratio == 0.35
+    assert cfg.headroom_min_content_length == 128
+    assert cfg.headroom_protect_recent == 3
+
+
+def test_headroom_context_compression_is_disabled_by_default() -> None:
+    def forbidden_loader():
+        raise AssertionError("Headroom must not be imported when disabled")
+
+    result = compress_chat_context_with_headroom(
+        message="current question",
+        history=[{"role": "user", "content": "older turn"}],
+        enabled=False,
+        compressor_loader=forbidden_loader,
+    )
+
+    assert result.message == "current question"
+    assert result.history == [{"role": "user", "content": "older turn"}]
+    assert result.status == "disabled"
+    assert result.used is False
+    assert result.warning == ""
+
+
+def test_headroom_context_compression_uses_local_compressor_when_enabled() -> None:
+    calls = []
+
+    def fake_compress(messages, **kwargs):
+        calls.append((messages, kwargs))
+        return [
+            {"role": "user", "content": "compressed history"},
+            {"role": "user", "content": "compressed current question"},
+        ]
+
+    result = compress_chat_context_with_headroom(
+        message="current question",
+        history=[{"role": "assistant", "content": "older answer"}],
+        enabled=True,
+        model="gemma-local",
+        compressor_loader=lambda: fake_compress,
+    )
+
+    assert calls
+    assert calls[0][1]["model"] == "gemma-local"
+    assert result.status == "compressed"
+    assert result.used is True
+    assert result.history == [{"role": "user", "content": "compressed history"}]
+    assert result.message == "compressed current question"
+    assert result.original_turns == 2
+    assert result.compressed_turns == 2
+
+
+def test_headroom_context_compression_accepts_headroom_result_object() -> None:
+    class FakeHeadroomResult:
+        messages = [
+            {"role": "user", "content": "compressed history"},
+            {"role": "user", "content": "compressed current question"},
+        ]
+        tokens_before = 1000
+        tokens_after = 400
+        tokens_saved = 600
+        compression_ratio = 0.6
+        transforms_applied = ["test-transform"]
+
+    def fake_compress(messages, **kwargs):
+        return FakeHeadroomResult()
+
+    result = compress_chat_context_with_headroom(
+        message="current question",
+        history=[{"role": "assistant", "content": "older answer"}],
+        enabled=True,
+        compressor_loader=lambda: fake_compress,
+    )
+
+    assert result.status == "compressed"
+    assert result.used is True
+    assert result.history == [{"role": "user", "content": "compressed history"}]
+    assert result.message == "compressed current question"
+
+
+def test_headroom_embedded_compressor_compresses_old_long_turns() -> None:
+    result = _compress_messages_with_embedded_headroom(
+        [
+            {"role": "user", "content": "very long old turn " * 20},
+            {"role": "assistant", "content": "recent answer " * 20},
+            {"role": "user", "content": "current question"},
+        ],
+        target_ratio=0.4,
+        min_content_length=50,
+        protect_recent=2,
+    )
+
+    assert result.messages[0]["content"].startswith("very long old turn")
+    assert "compressed by GemmAnima embedded Headroom-style" in result.messages[0]["content"]
+    assert result.messages[1]["content"].startswith("recent answer")
+    assert result.messages[2]["content"] == "current question"
+    assert result.tokens_saved > 0
+    assert result.compression_ratio > 0.0
+    assert result.transforms_applied == ["headroom:embedded"]
+
+
+def test_headroom_default_loader_is_embedded_and_has_no_package_dependency() -> None:
+    result = compress_chat_context_with_headroom(
+        message="current question",
+        history=[{"role": "user", "content": "very long old turn " * 80}],
+        enabled=True,
+        min_content_length=50,
+        protect_recent=0,
+    )
+
+    assert result.status == "compressed"
+    assert result.used is True
+    assert result.tokens_saved > 0
+    assert result.transforms_applied == ["headroom:embedded"]
+
+
+def test_headroom_context_compression_falls_back_when_dependency_missing() -> None:
+    def missing_loader():
+        raise ImportError("No module named 'headroom'")
+
+    result = compress_chat_context_with_headroom(
+        message="current question",
+        history=[{"role": "user", "content": "older turn"}],
+        enabled=True,
+        compressor_loader=missing_loader,
+    )
+
+    assert result.message == "current question"
+    assert result.history == [{"role": "user", "content": "older turn"}]
+    assert result.status == "unavailable"
+    assert result.used is False
+    assert "compressor is unavailable" in result.warning
+
+
+def test_headroom_context_compression_times_out_without_blocking_chat() -> None:
+    def slow_compress(messages, **kwargs):
+        time.sleep(0.2)
+        return [{"role": "user", "content": "too late"}]
+
+    started = time.perf_counter()
+    result = compress_chat_context_with_headroom(
+        message="current question",
+        history=[{"role": "user", "content": "older turn"}],
+        enabled=True,
+        compressor_loader=lambda: slow_compress,
+        timeout_seconds=0.01,
+    )
+
+    assert time.perf_counter() - started < 0.15
+    assert result.message == "current question"
+    assert result.history == [{"role": "user", "content": "older turn"}]
+    assert result.status == "timeout"
+    assert result.used is False
+    assert "timed out" in result.warning
+
+
+def test_chat_prompt_packs_history_within_context_budget() -> None:
+    prompt = _chat_prompt(
+        "current question",
+        [
+            {"role": "user", "content": "old oversized context " * 1000},
+            {"role": "assistant", "content": "recent answer"},
+        ],
+        language="en",
+        chat_mode="general_chat",
+        config=TipoTextConfig(n_ctx=768, max_new_tokens=64),
+    )
+
+    assert "current question" in prompt.text
+    assert "recent answer" in prompt.text
+    assert "old oversized context" not in prompt.text
 
 
 def test_tipo_text_runtime_initializes_llama_cpp_once(tmp_path) -> None:
@@ -342,11 +541,14 @@ def test_run_tipo_text_chat_uses_initialized_runtime_without_cli_runner(tmp_path
         message="안녕",
         language="ko",
         chat_mode="general_chat",
+        config=TipoTextConfig(headroom_enabled=True, headroom_model="gemma-local"),
         runtime=runtime,
         runner=forbidden_runner,
     )
 
     assert result["status"] == "completed"
+    assert runtime.calls[0]["headroom_enabled"] is True
+    assert runtime.calls[0]["headroom_model"] == "gemma-local"
     assert result["message"] == "이미 준비된 모델 응답입니다."
     assert runtime.calls[0]["message"] == "안녕"
 

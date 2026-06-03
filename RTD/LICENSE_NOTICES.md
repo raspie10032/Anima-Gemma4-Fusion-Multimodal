@@ -23,6 +23,7 @@ repository unless redistribution permission is explicitly documented.
 | Gemma-dependent logic and ideas | GemmAnima routing, harness, prompt-contract, hidden-state bridge, and adapter behavior built around Gemma | Treat as Gemma-dependent project material where applicable; do not use this project notice to bypass or relicense Gemma terms |
 | Anima diffusion model | `circlestone-labs/Anima` | CircleStone Labs Non-Commercial License according to the upstream model page |
 | Anima VAE file | `circlestone-labs/Anima` | Follow the upstream Anima page and the original VAE/model notices |
+| Chat context compression reference | `chopratejas/headroom` | Referenced design idea for local context compression; GemmAnima embeds its own minimal compressor and does not vendor Headroom package code |
 | GemmAnima adapters/checkpoints | GemmAnima adapter bundle | Composite prototype notice; use is constrained by upstream Gemma, Anima, NVIDIA, and dataset/source restrictions |
 
 The Anima model page states that Anima is licensed under the CircleStone Labs

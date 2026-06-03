@@ -91,8 +91,8 @@ GemmAnima files:
 | File | Role |
 | --- | --- |
 | `text-adapter-model-f16.gguf` | Text/chat LoRA adapter |
-| `vision-tagger-adapter-model-f16.gguf` | Vision/tagger LoRA adapter |
-| `gemma4-tipo-vision.mmproj-f16.gguf` | Vision projector |
+| `vision-tagger-adapter-model-f16.gguf` | Vision/tagger LoRA adapter, refreshed from the mixed-pose-front v2 final prototype |
+| `gemma4-tipo-vision.mmproj-f16.gguf` | Vision projector paired with the mixed-pose-front v2 final prototype |
 
 External requirement:
 
@@ -194,10 +194,10 @@ because original base weights are expected to come from their original pages:
 
 | Part | Approximate upload size |
 | --- | ---: |
-| Gemma Core adapters/projector | ~1.03 GB |
+| Gemma Core adapters/projector | ~1.06 GB |
 | HiddenStage Bridge | ~0.40 GB |
 | Anima Image Core base weights | not uploaded here |
-| Total uploaded here | ~1.43 GB |
+| Total uploaded here | ~1.46 GB |
 
 For local runtime planning, the full standalone runtime is about 9 GB in decimal
 units after the user downloads the external base weights separately:
