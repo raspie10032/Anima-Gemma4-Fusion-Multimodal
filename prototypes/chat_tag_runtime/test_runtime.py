@@ -43,7 +43,7 @@ def test_builtin_generation_job_has_stable_output_slot() -> None:
     assert "runs/prototypes/chat_tag_runtime/images" in result["output_path"]
 
 
-def test_builtin_generator_job_contract_rejects_external_fallback() -> None:
+def test_builtin_generator_job_contract_rejects_external_default() -> None:
     job = build_generation_job(message="1girl, blue eyes")
 
     assert job.output_path.as_posix().endswith(".png")
@@ -136,8 +136,8 @@ def test_tipo_planner_prefers_base_model_plus_lora(tmp_path: Path) -> None:
     cli = tmp_path / "llama-completion.exe"
     model = tmp_path / "base.gguf"
     lora = tmp_path / "adapter.gguf"
-    fallback = tmp_path / "merged.gguf"
-    for path in (cli, model, lora, fallback):
+    default = tmp_path / "merged.gguf"
+    for path in (cli, model, lora, default):
         path.write_bytes(b"x")
 
     calls = []
@@ -155,7 +155,7 @@ def test_tipo_planner_prefers_base_model_plus_lora(tmp_path: Path) -> None:
 
     result = run_tipo_planner(
         message="red dress",
-        config=TipoPlannerConfig(cli=cli, model=model, lora=lora, merged_model_fallback=fallback, work_dir=tmp_path),
+        config=TipoPlannerConfig(cli=cli, model=model, lora=lora, merged_model_default=default, work_dir=tmp_path),
         runner=fake_popen,
         timer=lambda: 1.0,
     )
@@ -164,18 +164,18 @@ def test_tipo_planner_prefers_base_model_plus_lora(tmp_path: Path) -> None:
     assert result["status"] == "completed"
     assert result["model"] == str(model)
     assert result["lora"] == str(lora)
-    assert result["using_fallback"] is False
+    assert result["using_default_model"] is False
     assert "--lora" in cmd
     assert str(lora) in cmd
     assert "-no-cnv" in cmd
     assert "--no-display-prompt" in cmd
 
 
-def test_tipo_planner_uses_merged_fallback_when_lora_missing(tmp_path: Path) -> None:
+def test_tipo_planner_uses_merged_default_when_lora_missing(tmp_path: Path) -> None:
     cli = tmp_path / "llama-completion.exe"
     model = tmp_path / "base.gguf"
-    fallback = tmp_path / "merged.gguf"
-    for path in (cli, model, fallback):
+    default = tmp_path / "merged.gguf"
+    for path in (cli, model, default):
         path.write_bytes(b"x")
 
     calls = []
@@ -197,7 +197,7 @@ def test_tipo_planner_uses_merged_fallback_when_lora_missing(tmp_path: Path) -> 
             cli=cli,
             model=model,
             lora=tmp_path / "missing_adapter.gguf",
-            merged_model_fallback=fallback,
+            merged_model_default=default,
             work_dir=tmp_path,
         ),
         runner=fake_popen,
@@ -206,9 +206,9 @@ def test_tipo_planner_uses_merged_fallback_when_lora_missing(tmp_path: Path) -> 
 
     cmd = calls[0][0]
     assert result["status"] == "completed"
-    assert result["model"] == str(fallback)
+    assert result["model"] == str(default)
     assert result["lora"] == ""
-    assert result["using_fallback"] is True
+    assert result["using_default_model"] is True
     assert "--lora" not in cmd
 
 
@@ -246,7 +246,7 @@ def test_model_prototype_documents_chat_and_tag_assets() -> None:
     assert payload["planner"]["model"].endswith("gemma-4-E2B-it-heretic-ara-Q4_K_M.gguf")
     assert payload["planner"]["lora"].endswith("adapter_model.f16.gguf")
     assert payload["planner"]["lora_source"].endswith("adapter_model.safetensors")
-    assert payload["planner"]["merged_model_fallback"].endswith("gemma4-tipo-ko-v2-Q4_K_M.gguf")
+    assert payload["planner"]["merged_model_default"].endswith("gemma4-tipo-ko-v2-Q4_K_M.gguf")
     assert payload["vision_understander"]["runtime"] == "llama-mtmd-cli"
     assert payload["vision_understander"]["mmproj"]
     assert payload["tag"]["runtime"] == "llama-mtmd-cli"
@@ -261,7 +261,7 @@ def test_model_health_checks_all_model_assets(tmp_path: Path) -> None:
     planner_model = tmp_path / "planner.gguf"
     planner_lora = tmp_path / "planner_lora.gguf"
     planner_lora_source = tmp_path / "planner_lora.safetensors"
-    planner_fallback = tmp_path / "planner_merged.gguf"
+    planner_default = tmp_path / "planner_merged.gguf"
     planner_cli = tmp_path / "llama-completion.exe"
     vision_cli = tmp_path / "llama-mtmd-vision.exe"
     vision_model = tmp_path / "vision_understand.gguf"
@@ -269,7 +269,7 @@ def test_model_health_checks_all_model_assets(tmp_path: Path) -> None:
     tag_cli = tmp_path / "llama-mtmd-cli.exe"
     tag_model = tmp_path / "tag.gguf"
     mmproj = tmp_path / "tag.mmproj"
-    for path in (chat_cli, chat_model, planner_cli, planner_model, planner_lora, planner_lora_source, planner_fallback, vision_cli, vision_model, vision_mmproj, tag_cli, tag_model, mmproj):
+    for path in (chat_cli, chat_model, planner_cli, planner_model, planner_lora, planner_lora_source, planner_default, vision_cli, vision_model, vision_mmproj, tag_cli, tag_model, mmproj):
         path.write_bytes(b"x")
 
     health = model_health(default_model_set(
@@ -279,7 +279,7 @@ def test_model_health_checks_all_model_assets(tmp_path: Path) -> None:
         planner_model=planner_model,
         planner_lora=planner_lora,
         planner_lora_source=planner_lora_source,
-        planner_merged_model_fallback=planner_fallback,
+        planner_merged_model_default=planner_default,
         vision_understand_cli=vision_cli,
         vision_understand_model=vision_model,
         vision_understand_mmproj=vision_mmproj,
@@ -295,7 +295,7 @@ def test_model_health_checks_all_model_assets(tmp_path: Path) -> None:
     assert health["assets"]["planner.model"]["exists"] is True
     assert health["assets"]["planner.lora"]["exists"] is True
     assert health["assets"]["planner.lora_source"]["exists"] is True
-    assert health["assets"]["planner.merged_model_fallback"]["exists"] is True
+    assert health["assets"]["planner.merged_model_default"]["exists"] is True
     assert health["assets"]["vision_understander.cli"]["exists"] is True
     assert health["assets"]["vision_understander.model"]["exists"] is True
     assert health["assets"]["vision_understander.mmproj"]["exists"] is True

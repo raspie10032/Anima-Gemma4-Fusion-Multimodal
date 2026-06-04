@@ -486,7 +486,7 @@ def _loss_config() -> dict[str, Any]:
         },
         "recommended_training": {
             "resume_from": "runs/cache/text_preservation_blended_v28/bridge/text_preservation_blended_v28_block0_a100_bridge.pt",
-            "fallback_resume_from": "runs/cache/text_preservation_blended_v5/bridge/text_preservation_blended_v5_bridge.pt",
+            "baseline_resume_from": "runs/cache/text_preservation_blended_v5/bridge/text_preservation_blended_v5_bridge.pt",
             "lr_range": [1e-08, 5e-08],
             "anchor_lambda_range": [0.05, 0.12],
         },

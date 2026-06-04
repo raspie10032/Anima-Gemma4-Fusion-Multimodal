@@ -3,7 +3,7 @@ from pathlib import Path
 
 from gemmanima.api import build_config, handle_chat_payload, handle_health_payload, select_bridge_profile_name
 from gemmanima.modules.gemma_planner import GemmaPlannerAdapter
-from gemmanima.modules.prompt_fallback import enrich_generation_prompt
+from gemmanima.modules.prompt_contracts import enrich_generation_prompt
 
 
 def test_handle_chat_payload_requires_message(tmp_path) -> None:
@@ -342,7 +342,7 @@ def test_handle_chat_payload_auto_rechecks_attached_image_before_chatting(tmp_pa
     assert len(calls) == 2
 
 
-def test_handle_chat_payload_auto_rechecks_attached_image_after_classifier_fallback(tmp_path, monkeypatch) -> None:
+def test_handle_chat_payload_auto_rechecks_attached_image_after_classifier_unresolved(tmp_path, monkeypatch) -> None:
     image_path = tmp_path / "input.png"
     image_path.write_bytes(b"fake image")
     calls = []
@@ -404,12 +404,12 @@ def test_handle_chat_payload_auto_rechecks_attached_image_after_classifier_fallb
     assert result["mode"] == "generate_image"
     assert result["status"] == "completed"
     assert result["auto_route"]["intent"] == "tag_then_generate"
-    assert result["auto_route"]["primary_route"]["intent"] == "fallback"
+    assert result["auto_route"]["primary_route"]["intent"] == "unresolved"
     assert result["tags_used"] == "1girl, solo, blue eyes"
     assert len(calls) == 2
 
 
-def test_handle_chat_payload_blocks_chat_fallback_when_attached_image_routing_fails(tmp_path, monkeypatch) -> None:
+def test_handle_chat_payload_blocks_chat_when_attached_image_routing_is_unresolved(tmp_path, monkeypatch) -> None:
     image_path = tmp_path / "input.png"
     image_path.write_bytes(b"fake image")
     calls = []
@@ -440,8 +440,8 @@ def test_handle_chat_payload_blocks_chat_fallback_when_attached_image_routing_fa
     assert result["mode"] == "route_failed"
     assert result["status"] == "failed"
     assert result["error_code"] == "attached_image_route_failed"
-    assert result["auto_route"]["intent"] == "fallback"
-    assert result["auto_route"]["primary_route"]["intent"] == "fallback"
+    assert result["auto_route"]["intent"] == "unresolved"
+    assert result["auto_route"]["primary_route"]["intent"] == "unresolved"
     assert "어떤 이미지" in result["auto_route"]["raw_excerpt"]
     assert len(calls) == 2
 
@@ -960,7 +960,7 @@ def test_handle_chat_payload_auto_image_classifier_falls_back_when_contract_is_b
     assert result["mode"] == "generate_image"
     assert result["status"] == "completed"
     assert result["auto_route"]["intent"] == "generate_image"
-    assert "contract:fallback" in result["progress"]
+    assert "contract:direct_plan" in result["progress"]
 
 
 def test_handle_chat_payload_auto_image_classifier_falls_back_when_contract_call_fails(tmp_path, monkeypatch) -> None:
@@ -1000,10 +1000,10 @@ def test_handle_chat_payload_auto_image_classifier_falls_back_when_contract_call
     assert result["mode"] == "generate_image"
     assert result["status"] == "completed"
     assert result["contract_error"] == "image generation contract is empty"
-    assert "contract:fallback" in result["progress"]
+    assert "contract:direct_plan" in result["progress"]
 
 
-def test_handle_chat_payload_korean_image_contract_fallback_uses_english_generation_prompt(
+def test_handle_chat_payload_korean_image_contract_direct_plan_uses_english_generation_prompt(
     tmp_path, monkeypatch
 ) -> None:
     def fake_text_chat(**kwargs):
@@ -1041,7 +1041,7 @@ def test_handle_chat_payload_korean_image_contract_fallback_uses_english_generat
 
     assert result["mode"] == "generate_image"
     assert result["status"] == "completed"
-    assert "contract:fallback" in result["progress"]
+    assert "contract:direct_plan" in result["progress"]
     assert result["plan"]["prompt"] != "비 오는 밤, 카페 창가에 앉아 있는 캐릭터를 따뜻한 분위기로 그려줘."
     assert "cafe" in result["plan"]["prompt"]
     assert "rain" in result["plan"]["prompt"]
@@ -1359,4 +1359,4 @@ def test_handle_health_payload_uses_tipo_vision_as_blocking_vision_gate(monkeypa
     assert result["preflight"]["blocking"] is True
     assert result["preflight"]["issues"] == [{"code": "missing_tipo_vision_cli", "scope": "tipo_vision"}]
     assert result["tipo_vision"]["ready"] is False
-    assert "wd_tagger" not in result
+    assert not any(key.startswith("wd") for key in result)

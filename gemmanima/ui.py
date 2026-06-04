@@ -1180,12 +1180,12 @@ GUI_HTML = r"""<!doctype html>
         body: JSON.stringify(payload)
       });
       if (!res.ok || !res.body) {
-        const fallback = await fetch("/v1/chat", {
+        const retryResponse = await fetch("/v1/chat", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify(payload)
         });
-        return await fallback.json();
+        return await retryResponse.json();
       }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();

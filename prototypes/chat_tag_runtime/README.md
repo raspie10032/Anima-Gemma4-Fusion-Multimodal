@@ -25,7 +25,7 @@ The first test file, `test_00_project_purpose.py`, enforces this boundary.
 - Current runtime branch: quantized `llama.cpp`
 - Future branch point: unquantized Transformers/native runtime, if the deployment environment can afford it
 - Current image planner target: `llama-completion.exe` + quantized Gemma4 base GGUF + llama.cpp-compatible TIPO f16 LoRA GGUF
-- Current image planner fallback: merged `gemma4-tipo-ko-v2-Q4_K_M.gguf`
+- Current image planner default: merged `gemma4-tipo-ko-v2-Q4_K_M.gguf`
 - Required vision module 1: image understanding, for natural-language visual understanding and hidden-state conditioning
 - Required vision module 2: image-to-tags, for Danbooru/TIPO-style tag extraction
 - Current vision stand-ins: `llama-mtmd-cli.exe` + `gemma4-tipo-vision-Q4_K_M.gguf` + matching mmproj, split by module contract even if early smoke assets share the same runtime

@@ -25,7 +25,7 @@ Current renderer modes:
 - `dry-run`: default non-heavy render path.
 - `real`: routes to in-process Anima renderer.
 - `in-process`: explicit repo-native renderer.
-- `external-script`: legacy fallback wrapper around the old script.
+- `external-script`: legacy default wrapper around the old script.
 
 The CLI keeps `real-render-command` as a compatibility alias for the legacy
 external command, while the clearer `external-render-command` is now available.

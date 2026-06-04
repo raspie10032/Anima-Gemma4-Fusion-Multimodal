@@ -218,7 +218,7 @@ def apply_generation_preset(
         orientation=orientation,
         custom_width=custom_width,
         custom_height=custom_height,
-        fallback=(plan.width, plan.height),
+        default_size=(plan.width, plan.height),
     )
     data: dict[str, object] = {
         "width": width,
@@ -241,11 +241,11 @@ def _resolution_dimensions(
     orientation: str | None,
     custom_width: int | None,
     custom_height: int | None,
-    fallback: tuple[int, int],
+    default_size: tuple[int, int],
 ) -> tuple[int, int]:
     if resolution.custom:
-        width = int(custom_width or fallback[0])
-        height = int(custom_height or fallback[1])
+        width = int(custom_width or default_size[0])
+        height = int(custom_height or default_size[1])
     else:
         assert resolution.width is not None
         assert resolution.height is not None

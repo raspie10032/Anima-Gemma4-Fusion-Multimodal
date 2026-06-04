@@ -13,7 +13,7 @@ def test_export_teacher_subset_uses_teacher_prompt(tmp_path: Path) -> None:
             [
                 json.dumps({"id": 10, "action": "generate", "teacher_prompt": "masterpiece, cat"}),
                 json.dumps({"id": 11, "action": "clarify", "teacher_prompt": "skip"}),
-                json.dumps({"id": 12, "action": "generate", "visible_prompt": "fallback prompt"}),
+                json.dumps({"id": 12, "action": "generate", "visible_prompt": "direct prompt"}),
             ]
         ),
         encoding="utf-8",
@@ -26,7 +26,7 @@ def test_export_teacher_subset_uses_teacher_prompt(tmp_path: Path) -> None:
     assert rows[0]["idx"] == 10
     assert rows[0]["text"] == "masterpiece, cat"
     assert rows[1]["idx"] == 12
-    assert rows[1]["text"] == "fallback prompt"
+    assert rows[1]["text"] == "direct prompt"
     assert "06_cache_targets.py" in result.command
     assert "python_embeded" in result.command
     assert result.cache_manifest_command

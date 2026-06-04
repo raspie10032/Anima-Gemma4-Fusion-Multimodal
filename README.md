@@ -5,8 +5,7 @@
 GemmAnima is a prototype local-first chat and image orchestration app that
 connects three parts:
 
-- **Gemma Core** for resident chat, routing, tag, and intent planning.
-- **Vision Tagger** for local Danbooru image tagging and image-tag correlation.
+- **Gemma Core** for resident chat, routing, intent planning, and Gemma vision tagging.
 - **Anima Image Core** for local image generation.
 - **HiddenStage Bridge** for mapping Gemma-side planning into Anima-side
   conditioning.
@@ -331,7 +330,7 @@ Renderer choices:
 | `local-worker` | Preferred standalone local worker path. |
 | `in-process` | Repo-native in-process renderer path where the environment supports it. |
 | `dry-run` | Writes a dry-run artifact without running real image generation. |
-| `external-script` | Compatibility fallback for older local render scripts. |
+| `external-script` | Compatibility bridge for older local render scripts. |
 
 ## Documentation Map
 
@@ -388,7 +387,7 @@ promoted, or safety-evaluated.
 - Pose robustness needs more targeted data and evaluation.
 - Real generation requires local GPU/runtime setup.
 - First-run model download behavior is still part of the prototype surface.
-- External-script rendering remains a compatibility fallback, not the intended
+- External-script rendering remains a compatibility bridge, not the intended
   standalone default.
 - The adapter bundle is public prototype material, not a final promoted model.
 

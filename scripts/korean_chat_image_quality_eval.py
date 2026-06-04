@@ -18,7 +18,7 @@ from gemmanima.api import (
 )
 from gemmanima.core.schemas import ChatTurn, GenerationPlan
 from gemmanima.modules.in_process_anima_renderer import InProcessAnimaRendererAdapter
-from gemmanima.modules.prompt_fallback import (
+from gemmanima.modules.prompt_contracts import (
     build_safe_generation_prompt,
     build_safe_negative_prompt,
     enrich_generation_prompt,
@@ -32,7 +32,6 @@ from gemmanima.modules.tipo_runtime import (
     run_tipo_text_chat,
     run_tipo_vision_tag,
 )
-from gemmanima.modules.wd_tagger import run_wd_vision_tag
 
 
 @dataclass(frozen=True)
@@ -261,13 +260,11 @@ def run_eval(args: argparse.Namespace) -> dict[str, Any]:
         tag_result: dict[str, Any] = {}
         vision_tags = ""
         if image_path and image_path.is_file():
-            tag_result = run_wd_vision_tag(image_path=image_path)
-            if tag_result.get("status") != "completed":
-                tag_result = run_tipo_vision_tag(
-                    image_path=image_path,
-                    prompt=DEFAULT_TAG_PROMPT,
-                    config=TipoVisionConfig(),
-                )
+            tag_result = run_tipo_vision_tag(
+                image_path=image_path,
+                prompt=DEFAULT_TAG_PROMPT,
+                config=TipoVisionConfig(),
+            )
             vision_tags = clean_vision_tags(str(tag_result.get("tags") or tag_result.get("raw") or ""))
         manifest = _load_manifest(str(response.manifest_path) if response.manifest_path else None)
         prompt_text = plan.prompt

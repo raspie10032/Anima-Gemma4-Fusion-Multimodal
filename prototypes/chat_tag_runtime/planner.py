@@ -19,7 +19,7 @@ class TipoPlannerConfig:
     cli: Path = DEFAULT_COMPLETION_CLI
     model: Path = DEFAULT_CHAT_MODEL
     lora: Path | None = DEFAULT_PLANNER_LORA_GGUF
-    merged_model_fallback: Path | None = DEFAULT_PLANNER_MODEL
+    merged_model_default: Path | None = DEFAULT_PLANNER_MODEL
     visible_devices: str = "0"
     device: str = "CUDA0"
     max_new_tokens: int = 96
@@ -39,10 +39,10 @@ def run_tipo_planner(
     cfg = config or TipoPlannerConfig()
     model = cfg.model
     lora = cfg.lora if cfg.lora and cfg.lora.is_file() else None
-    using_fallback = False
-    if lora is None and cfg.merged_model_fallback and cfg.merged_model_fallback.is_file():
-        model = cfg.merged_model_fallback
-        using_fallback = True
+    using_default_model = False
+    if lora is None and cfg.merged_model_default and cfg.merged_model_default.is_file():
+        model = cfg.merged_model_default
+        using_default_model = True
 
     missing = _missing({"cli": cfg.cli, "model": model})
     if missing:
@@ -111,8 +111,8 @@ def run_tipo_planner(
         "seconds": round(timer() - start, 3),
         "model": str(model),
         "lora": str(lora) if lora else "",
-        "merged_model_fallback": str(cfg.merged_model_fallback) if cfg.merged_model_fallback else "",
-        "using_fallback": using_fallback,
+        "merged_model_default": str(cfg.merged_model_default) if cfg.merged_model_default else "",
+        "using_default_model": using_default_model,
         "device": cfg.device,
         "error": "" if return_code == 0 else ((stderr_text or raw)[-1000:]),
     }

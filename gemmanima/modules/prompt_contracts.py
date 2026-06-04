@@ -65,13 +65,13 @@ def build_safe_generation_prompt(message: str) -> str:
 
 def enrich_generation_prompt(message: str, prompt: str) -> str:
     base = str(prompt or "").strip()
-    fallback = build_safe_generation_prompt(message)
+    safe_prompt = build_safe_generation_prompt(message)
     if not base:
-        return fallback
+        return safe_prompt
     tags: list[str] = []
     for tag in base.split(","):
         _append_unique(tags, tag)
-    for tag in fallback.split(","):
+    for tag in safe_prompt.split(","):
         tag = tag.strip()
         if tag in _BASE_TAGS:
             continue

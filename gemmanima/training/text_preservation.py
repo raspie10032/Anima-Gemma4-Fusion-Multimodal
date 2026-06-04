@@ -2009,7 +2009,7 @@ def build_text_preservation_v21_text_roi_gate_report(
         "roi_policy": {
             "purpose": "diagnose whether whole-image MSE is being pulled by background/layout drift",
             "promotion_rule": "does_not_replace_fixed6_whole_image_gate",
-            "fallback": "missing_roi_or_missing_images_are_reported_without promoting candidates",
+            "baseline_policy": "missing_roi_or_missing_images_are_reported_without promoting candidates",
         },
         "baseline": baseline_cases,
         "candidates": candidate_payloads,
@@ -2559,7 +2559,7 @@ def build_text_preservation_render_readability_label_manifest(
                 readability_label="accepted_baseline",
                 curriculum_role="fixed_gate_protection",
                 source_review=fixed_review_path,
-                fallback_metrics=row,
+                baseline_metrics=row,
             )
         )
 
@@ -2581,7 +2581,7 @@ def build_text_preservation_render_readability_label_manifest(
                     readability_label=label,
                     curriculum_role=_readability_curriculum_role(label),
                     source_review=heldout_review_path,
-                    fallback_metrics={},
+                    baseline_metrics={},
                 )
             )
 
@@ -3464,7 +3464,7 @@ def build_text_preservation_v18_tea_micro_refresh_manifest(
         "training_contract": {
             "protected_baseline": "v5",
             "resume_from": _json_path(DEFAULT_TEXT_PRESERVATION_BLEND_V17_BRIDGE),
-            "fallback_resume_from": _json_path(DEFAULT_TEXT_PRESERVATION_BLEND_V5_BRIDGE),
+            "baseline_resume_from": _json_path(DEFAULT_TEXT_PRESERVATION_BLEND_V5_BRIDGE),
             "do_not_overwrite": [
                 _json_path(DEFAULT_TEXT_PRESERVATION_BLEND_V5_BRIDGE),
                 _json_path(DEFAULT_TEXT_PRESERVATION_BLEND_V17_BRIDGE),
@@ -4492,7 +4492,7 @@ def _render_readability_record(
     readability_label: str,
     curriculum_role: str,
     source_review: Path,
-    fallback_metrics: dict[str, Any],
+    baseline_metrics: dict[str, Any],
 ) -> dict[str, Any]:
     metrics = compare.get("image_metrics", {})
     prompt = compare.get("prompt")
@@ -4508,8 +4508,8 @@ def _render_readability_record(
         "source_review": _json_path(source_review),
         "readability_label": readability_label,
         "curriculum_role": curriculum_role,
-        "image_mse": metrics.get("mse", fallback_metrics.get("mse")),
-        "psnr_db": metrics.get("psnr_db", fallback_metrics.get("psnr_db")),
+        "image_mse": metrics.get("mse", baseline_metrics.get("mse")),
+        "psnr_db": metrics.get("psnr_db", baseline_metrics.get("psnr_db")),
     }
 
 

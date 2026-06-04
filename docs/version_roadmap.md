@@ -86,6 +86,6 @@ Required outcomes:
 
 - `GEMMANIMA Protocol v0.1` is stable.
 - Scene, Character, Style, Mood, Reference, Instruction, Conflict, Conditioning, and RunManifest contracts are standardized.
-- T5XXL/runtime text encoder dependency becomes optional or fallback.
+- T5XXL/runtime text encoder dependency becomes optional or default.
 - External model adapters can change parser inputs without retraining the translator.
 - Safe public lineage release path is documented and enforceable.

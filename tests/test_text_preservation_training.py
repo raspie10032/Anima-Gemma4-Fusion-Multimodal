@@ -1869,7 +1869,7 @@ def test_v18_tea_micro_refresh_manifest_focuses_tea_and_guards_v17_gain() -> Non
     }
     assert manifest["training_contract"]["protected_baseline"] == "v5"
     assert manifest["training_contract"]["resume_from"].endswith("text_preservation_blended_v17_bridge.pt")
-    assert manifest["training_contract"]["fallback_resume_from"].endswith("text_preservation_blended_v5_bridge.pt")
+    assert manifest["training_contract"]["baseline_resume_from"].endswith("text_preservation_blended_v5_bridge.pt")
     assert manifest["training_contract"]["refresh_records"] == 3
     assert manifest["training_contract"]["v17_gain_guard_records"] == 1
     prompt_json = json.dumps(manifest["prompt_records"], ensure_ascii=False)

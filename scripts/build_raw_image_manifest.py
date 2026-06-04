@@ -93,7 +93,7 @@ def prompt_from_image_info(path: Path) -> str | None:
     return None
 
 
-def fallback_prompt(path: Path, data_root: Path) -> str:
+def path_prompt(path: Path, data_root: Path) -> str:
     rel = path.relative_to(data_root)
     parts = [part for part in rel.parts[:-1] if part and not re.fullmatch(r"new folder( \(\d+\))?", part, re.I)]
     stem = re.sub(r"[_\-]+", " ", path.stem)
@@ -113,7 +113,7 @@ def build_prompt(path: Path, data_root: Path) -> tuple[str, str]:
         prompt = getter()
         if prompt:
             return prompt, source_name
-    return fallback_prompt(path, data_root), "path_fallback"
+    return path_prompt(path, data_root), "path_prompt"
 
 
 def image_size(path: Path) -> tuple[int | None, int | None]:

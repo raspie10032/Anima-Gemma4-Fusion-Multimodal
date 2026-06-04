@@ -47,7 +47,7 @@ class ModelPrototype:
     model: Path
     lora: Path | None = None
     lora_source: Path | None = None
-    merged_model_fallback: Path | None = None
+    merged_model_default: Path | None = None
     mmproj: Path | None = None
     prompt_contract: str = ""
     runtime_branch: str = CURRENT_RUNTIME_BRANCH
@@ -62,7 +62,7 @@ class ModelPrototype:
             "model": str(self.model),
             "lora": str(self.lora) if self.lora else "",
             "lora_source": str(self.lora_source) if self.lora_source else "",
-            "merged_model_fallback": str(self.merged_model_fallback) if self.merged_model_fallback else "",
+            "merged_model_default": str(self.merged_model_default) if self.merged_model_default else "",
             "mmproj": str(self.mmproj) if self.mmproj else "",
             "prompt_contract": self.prompt_contract,
             "notes": list(self.notes),
@@ -126,7 +126,7 @@ def default_model_set(
     planner_model: Path = DEFAULT_CHAT_MODEL,
     planner_lora: Path = DEFAULT_PLANNER_LORA_GGUF,
     planner_lora_source: Path = DEFAULT_PLANNER_LORA_SOURCE,
-    planner_merged_model_fallback: Path = DEFAULT_PLANNER_MODEL,
+    planner_merged_model_default: Path = DEFAULT_PLANNER_MODEL,
     vision_understand_cli: Path = DEFAULT_TAG_CLI,
     vision_understand_model: Path = DEFAULT_VISION_UNDERSTAND_MODEL,
     vision_understand_mmproj: Path = DEFAULT_VISION_UNDERSTAND_MMPROJ,
@@ -162,13 +162,13 @@ def default_model_set(
             model=planner_model,
             lora=planner_lora,
             lora_source=planner_lora_source,
-            merged_model_fallback=planner_merged_model_fallback,
+            merged_model_default=planner_merged_model_default,
             prompt_contract="TIPO-style Partial tags continuation for image generation conditioning",
             notes=(
                 "auxiliary stand-in only; final generation path is hidden-state conditioning into Anima",
                 "current design loads the quantized Gemma4 base GGUF and applies a llama.cpp-compatible f16 LoRA GGUF",
                 "PEFT safetensors LoRA is source material and must be converted before llama.cpp --lora use",
-                "merged planner GGUF remains a smoke fallback, not the target module layout",
+                "merged planner GGUF remains a smoke default, not the target module layout",
             ),
         ),
         vision_understander=ModelPrototype(
@@ -206,7 +206,7 @@ def model_health(model_set: ChatTagModelSet | None = None) -> dict[str, Any]:
         "planner.model": models.planner.model,
         "planner.lora": models.planner.lora,
         "planner.lora_source": models.planner.lora_source,
-        "planner.merged_model_fallback": models.planner.merged_model_fallback,
+        "planner.merged_model_default": models.planner.merged_model_default,
         "vision_understander.cli": models.vision_understander.cli,
         "vision_understander.model": models.vision_understander.model,
         "vision_understander.mmproj": models.vision_understander.mmproj,

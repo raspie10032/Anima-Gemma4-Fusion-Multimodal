@@ -22,7 +22,7 @@ from gemmanima.modules.anima_renderer import AnimaRendererAdapter
 from gemmanima.modules.hiddenstage_exit import HiddenStageExit
 from gemmanima.modules.in_process_anima_renderer import InProcessAnimaRendererAdapter
 from gemmanima.modules.local_worker_anima_renderer import LocalWorkerAnimaRendererAdapter
-from gemmanima.modules.prompt_fallback import (
+from gemmanima.modules.prompt_contracts import (
     build_safe_generation_prompt,
     build_safe_negative_prompt,
     enrich_generation_prompt,
@@ -336,7 +336,7 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
             intent = str(auto_route.get("intent") or "chat")
             attached_image_path = _attached_image_path(payload)
             pre_action = str(auto_route.get("pre_action") or "").strip().lower()
-            if attached_image_path and intent in {"chat", "generate_image", "fallback"} and not pre_action:
+            if attached_image_path and intent in {"chat", "generate_image", "unresolved"} and not pre_action:
                 arbitration = classify_attached_image_action(
                     payload,
                     message=message,
@@ -345,14 +345,14 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
                 )
                 arbitration_intent = str(arbitration.get("intent") or "chat")
                 arbitration_pre_action = str(arbitration.get("pre_action") or "").strip().lower()
-                if arbitration_intent not in {"chat", "fallback"} or arbitration_pre_action:
+                if arbitration_intent not in {"chat", "unresolved"} or arbitration_pre_action:
                     auto_route = {
                         **arbitration,
                         "primary_route": auto_route,
                     }
                     intent = arbitration_intent
                     pre_action = arbitration_pre_action
-                elif arbitration_intent == "fallback":
+                elif arbitration_intent == "unresolved":
                     auto_route = {
                         **arbitration,
                         "primary_route": auto_route,
@@ -378,7 +378,7 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
                 route_as_text_chat = True
             elif intent == "chat":
                 route_as_text_chat = True
-            elif intent == "fallback" and attached_image_path:
+            elif intent == "unresolved" and attached_image_path:
                 return {
                     "mode": "route_failed",
                     "status": "failed",
@@ -386,10 +386,10 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
                     "error_code": "attached_image_route_failed",
                     "message": (
                         "The local model did not produce a valid tool decision for the "
-                        "attached image. No chat fallback was used."
+                        "attached image. No natural-language answer was used."
                     ),
                     "auto_route": auto_route,
-                    "progress": ["route:auto", "intent:fallback", "attached_image:blocked_chat_fallback"],
+                    "progress": ["route:auto", "intent:unresolved", "attached_image:blocked_chat"],
                 }
             else:
                 routing_conductor = GemmAnimaConductor(config=build_config(payload))
@@ -410,13 +410,13 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
         )
         if result.get("status") != "completed":
             if auto_route and auto_route.get("intent") == "generate_image" and chat_mode == "image_generation_request":
-                fallback = handle_direct_generation_payload(payload, message=message, base_dir=base_dir, force_plan=True)
-                fallback["auto_route"] = auto_route
-                fallback["progress"] = [*fallback.get("progress", ()), "contract:fallback"]
-                fallback["chat_mode"] = chat_mode
-                fallback["output_contract"] = output_contract
-                fallback["contract_error"] = result.get("error", "image generation contract failed")
-                return fallback
+                direct_plan = handle_direct_generation_payload(payload, message=message, base_dir=base_dir, force_plan=True)
+                direct_plan["auto_route"] = auto_route
+                direct_plan["progress"] = [*direct_plan.get("progress", ()), "contract:direct_plan"]
+                direct_plan["chat_mode"] = chat_mode
+                direct_plan["output_contract"] = output_contract
+                direct_plan["contract_error"] = result.get("error", "image generation contract failed")
+                return direct_plan
             return {
                 "mode": "chat",
                 "status": "failed",
@@ -437,13 +437,13 @@ def handle_chat_payload(payload: dict[str, Any], *, base_dir: str | Path = "runs
                 )
             if contract.get("status") != "completed":
                 if auto_route and auto_route.get("intent") == "generate_image":
-                    fallback = handle_direct_generation_payload(payload, message=message, base_dir=base_dir, force_plan=True)
-                    fallback["auto_route"] = auto_route
-                    fallback["progress"] = [*fallback.get("progress", ()), "contract:fallback"]
-                    fallback["chat_mode"] = chat_mode
-                    fallback["output_contract"] = output_contract
-                    fallback["contract_error"] = contract.get("error", "image generation contract failed")
-                    return fallback
+                    direct_plan = handle_direct_generation_payload(payload, message=message, base_dir=base_dir, force_plan=True)
+                    direct_plan["auto_route"] = auto_route
+                    direct_plan["progress"] = [*direct_plan.get("progress", ()), "contract:direct_plan"]
+                    direct_plan["chat_mode"] = chat_mode
+                    direct_plan["output_contract"] = output_contract
+                    direct_plan["contract_error"] = contract.get("error", "image generation contract failed")
+                    return direct_plan
                 return {
                     "mode": "chat",
                     "status": "failed",
@@ -618,10 +618,10 @@ def handle_direct_generation_payload(
     if not force_plan:
         return response_to_dict(conductor.handle_user_message(message))
     reference_image_path = str(payload.get("reference_image_path") or payload.get("image_path") or "").strip()
-    fallback_prompt = build_safe_generation_prompt(message)
+    safe_prompt = build_safe_generation_prompt(message)
     plan = apply_payload_generation_preset(
         GenerationPlan(
-            prompt=fallback_prompt,
+            prompt=safe_prompt,
             negative_prompt=build_safe_negative_prompt(str(payload.get("negative_prompt") or "")),
             reference_image_path=reference_image_path,
         ),
@@ -702,7 +702,7 @@ def classify_attached_image_action(
 def _parse_intent_classifier_result(result: dict[str, Any]) -> dict[str, Any]:
     if result.get("status") != "completed":
         return {
-            "intent": "fallback",
+            "intent": "unresolved",
             "confidence": 0.0,
             "reason": str(result.get("error") or "intent classifier failed"),
             "raw_excerpt": str(result.get("raw") or result.get("message") or "")[:500],
@@ -722,7 +722,7 @@ def _parse_intent_classifier_result(result: dict[str, Any]) -> dict[str, Any]:
     }
     intent = aliases.get(intent, intent)
     if intent not in {"chat", "generate_image", "tag_image", "tag_then_generate"}:
-        intent = "fallback"
+        intent = "unresolved"
     try:
         confidence = float(data.get("confidence", 0.0))
     except (TypeError, ValueError):
@@ -751,7 +751,7 @@ def _parse_intent_classifier_result(result: dict[str, Any]) -> dict[str, Any]:
         "confidence": confidence,
         "reason": str(data.get("reason") or "").strip(),
         "pre_action": pre_action,
-        "raw_excerpt": raw[:500] if intent == "fallback" else "",
+        "raw_excerpt": raw[:500] if intent == "unresolved" else "",
     }
 
 

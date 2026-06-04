@@ -86,7 +86,7 @@ configuration.
 ### 1. Gemma Core
 
 The Gemma Core handles chat, language-harness behavior, canonical English
-Danbooru tag output, and the prototype Gemma vision fallback path.
+Danbooru tag output, and Gemma vision tagging.
 
 GemmAnima files:
 
@@ -212,10 +212,9 @@ units after the user downloads the external base weights separately:
 | Part | Approximate size |
 | --- | ---: |
 | Gemma Core | ~4.51 GB |
-| Vision Tagger | ~0.47 GB |
 | Anima Image Core | ~4.44 GB |
 | HiddenStage Bridge | ~0.40 GB |
-| Total | ~9.81 GB |
+| Total | ~9.34 GB |
 
 Exact size depends on final filenames and whether source adapters or
 compatibility reference models are included.
