@@ -41,19 +41,6 @@
         }
       }
     },
-    "vision_tagger": {
-      "description": "Local ONNX Danbooru tagger used for image-tag correlation and app tag-image routing.",
-      "assets": {
-        "wd_swinv2_model": {
-          "relative_path": "vision_tagger/wd-swinv2-tagger-v3/model.onnx",
-          "source": "SmilingWolf/wd-swinv2-tagger-v3"
-        },
-        "wd_swinv2_tags": {
-          "relative_path": "vision_tagger/wd-swinv2-tagger-v3/selected_tags.csv",
-          "source": "SmilingWolf/wd-swinv2-tagger-v3"
-        }
-      }
-    },
     "hiddenstage_bridge": {
       "description": "GemmAnima planner, embedding, and bridge profile checkpoints.",
       "assets": {

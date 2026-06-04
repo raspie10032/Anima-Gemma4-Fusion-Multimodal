@@ -33,14 +33,6 @@ class ModelConfig:
         "anima_image_core",
         "qwen_image_vae.safetensors",
     )
-    wd_tagger_model: Path = model_path(
-        "vision_tagger",
-        "wd-swinv2-tagger-v3/model.onnx",
-    )
-    wd_tagger_tags: Path = model_path(
-        "vision_tagger",
-        "wd-swinv2-tagger-v3/selected_tags.csv",
-    )
     hiddenstage_bridge: Path = model_path(
         "hiddenstage_bridge",
         "kv_proj_hiddenstage_planner_v2.pt",

@@ -44,7 +44,6 @@ def test_readmes_include_required_reference_index_links() -> None:
         "https://huggingface.co/raspie/gemmanima-adapter-bundle",
         "https://huggingface.co/mradermacher/gemma-4-E2B-it-heretic-ara-custom-GGUF",
         "https://huggingface.co/circlestone-labs/Anima",
-        "https://huggingface.co/SmilingWolf/wd-swinv2-tagger-v3",
         "https://github.com/ggml-org/llama.cpp",
         "https://github.com/abetlen/llama-cpp-python",
         "https://github.com/comfyanonymous/ComfyUI",

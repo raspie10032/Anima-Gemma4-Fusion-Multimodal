@@ -130,7 +130,6 @@ from gemmanima.training.rebalance import build_rebalance_subsets
 from gemmanima.training.real_render import audit_real_render_dependencies, build_real_render_command
 from gemmanima.modules.real_anima_renderer import ExternalAnimaRendererAdapter
 from gemmanima.modules.tipo_runtime import DEFAULT_TAG_PROMPT, clean_vision_tags, run_tipo_vision_tag
-from gemmanima.modules.wd_tagger import run_wd_vision_tag
 from gemmanima.rendering.backends import audit_renderer_backend, renderer_backend_profile
 from gemmanima.rendering.image_state_engine import image_state_engine_status
 from gemmanima.training.real_render import DEFAULT_EMBEDDED_PYTHON
@@ -1096,9 +1095,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "tag-image":
-        result = run_wd_vision_tag(image_path=Path(args.image_path))
-        if result.get("status") != "completed":
-            result = run_tipo_vision_tag(image_path=Path(args.image_path), prompt=args.prompt)
+        result = run_tipo_vision_tag(image_path=Path(args.image_path), prompt=args.prompt)
         tags = clean_vision_tags(str(result.get("tags") or ""))
         payload = {
             "mode": "tag_image",

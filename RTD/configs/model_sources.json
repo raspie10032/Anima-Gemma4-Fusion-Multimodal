@@ -40,18 +40,6 @@
                                                  "filename":  "split_files/vae/qwen_image_vae.safetensors",
                                                  "license_id":  "circlestone-labs-non-commercial-license"
                                              },
-                    "vision_tagger.wd_swinv2_model":  {
-                                                          "origin":  "original_model_page",
-                                                          "repo_id":  "SmilingWolf/wd-swinv2-tagger-v3",
-                                                          "filename":  "model.onnx",
-                                                          "license_id":  "apache-2.0"
-                                                      },
-                    "vision_tagger.wd_swinv2_tags":  {
-                                                         "origin":  "original_model_page",
-                                                         "repo_id":  "SmilingWolf/wd-swinv2-tagger-v3",
-                                                         "filename":  "selected_tags.csv",
-                                                         "license_id":  "apache-2.0"
-                                                     },
                     "hiddenstage_bridge.planner_adapter":  {
                                                                "origin":  "gemmanima_adapter_bundle",
                                                                "repo_id":  "raspie/gemmanima-adapter-bundle",

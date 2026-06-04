@@ -88,7 +88,6 @@ GitHub 저장소는 앱/소스 코드 표면이며 모델 미러가 아닙니다
 | GemmAnima 어댑터 번들 | [raspie/gemmanima-adapter-bundle](https://huggingface.co/raspie/gemmanima-adapter-bundle) | Gemma task adapter, prototype vision projector, HiddenStage bridge checkpoint, metadata, model card |
 | Gemma Core base GGUF | [mradermacher/gemma-4-E2B-it-heretic-ara-custom-GGUF](https://huggingface.co/mradermacher/gemma-4-E2B-it-heretic-ara-custom-GGUF) | 채팅, 계획, Gemma-side adapter에 공유로 쓰는 local GGUF |
 | Anima Image Core | [circlestone-labs/Anima](https://huggingface.co/circlestone-labs/Anima) | 로컬 이미지 렌더러의 diffusion model 및 VAE |
-| WD SwinV2 tagger | [SmilingWolf/wd-swinv2-tagger-v3](https://huggingface.co/SmilingWolf/wd-swinv2-tagger-v3) | 첨부/생성 이미지 태깅용 기본 local ONNX Danbooru tagger |
 
 ### 런타임 및 구현 레퍼런스
 

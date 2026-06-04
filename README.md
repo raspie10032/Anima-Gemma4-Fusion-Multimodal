@@ -51,8 +51,7 @@ copies of the same base model.
 
 | Group | Purpose |
 | --- | --- |
-| Gemma Core | Base GGUF plus LoRA/mmproj adapters for chat, planning, and Gemma vision fallback. |
-| Vision Tagger | Local WD SwinV2 ONNX Danbooru tagger used as the default image-tag route. |
+| Gemma Core | Base GGUF plus LoRA/mmproj adapters for chat, planning, and Gemma vision tagging. |
 | Anima Image Core | Diffusion model and VAE used by the local image renderer. |
 | HiddenStage Bridge | Prototype bridge/profile checkpoints used to translate Gemma-side intent into Anima conditioning. |
 
@@ -61,7 +60,6 @@ The expected v0.1.0 asset sources are:
 | Asset group | Source policy |
 | --- | --- |
 | Gemma base GGUF | Download from the original GGUF model page. |
-| WD SwinV2 tagger | Download from the original SmilingWolf model page. |
 | Anima diffusion and VAE | Download from the original Anima model page. |
 | GemmAnima adapters and bridge profiles | Download from the GemmAnima adapter bundle. |
 
@@ -86,7 +84,6 @@ comes from.
 | GemmAnima adapter bundle | [raspie/gemmanima-adapter-bundle](https://huggingface.co/raspie/gemmanima-adapter-bundle) | Gemma task adapters, prototype vision projector, HiddenStage bridge checkpoints, metadata, and model card. |
 | Gemma Core base GGUF | [mradermacher/gemma-4-E2B-it-heretic-ara-custom-GGUF](https://huggingface.co/mradermacher/gemma-4-E2B-it-heretic-ara-custom-GGUF) | Shared local GGUF loaded once for chat, planning, and Gemma-side adapters. |
 | Anima Image Core | [circlestone-labs/Anima](https://huggingface.co/circlestone-labs/Anima) | Anima diffusion model and VAE assets used by the local image renderer. |
-| WD SwinV2 tagger | [SmilingWolf/wd-swinv2-tagger-v3](https://huggingface.co/SmilingWolf/wd-swinv2-tagger-v3) | Default local ONNX Danbooru tagger for attached/generated image tagging. |
 
 ### Runtime And Implementation References
 

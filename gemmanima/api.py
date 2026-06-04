@@ -39,7 +39,6 @@ from gemmanima.modules.tipo_runtime import (
     tipo_text_health,
     tipo_vision_health,
 )
-from gemmanima.modules.wd_tagger import run_wd_vision_tag, wd_tagger_health
 from gemmanima.rendering.backends import audit_renderer_backend
 
 
@@ -776,11 +775,8 @@ def handle_tag_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if not image_path:
         return {"error": "image_path is required for tag task", "status": "failed"}
     prompt = str(payload.get("message") or "").strip() or None
-    result = run_wd_vision_tag(image_path=image_path)
-    tagger_name = "wd:vision"
-    if result.get("status") != "completed":
-        result = run_tipo_vision_tag(image_path=image_path, prompt=prompt)
-        tagger_name = "tipo:vision"
+    result = run_tipo_vision_tag(image_path=image_path, prompt=prompt)
+    tagger_name = "tipo:vision"
     status = result.get("status", "failed")
     if status != "completed":
         return {
@@ -788,7 +784,7 @@ def handle_tag_payload(payload: dict[str, Any]) -> dict[str, Any]:
             "status": "failed",
             "error": result.get("error", "tag generation failed"),
             "tags": result.get("tags", ""),
-            "progress": ["route:tag", "wd:failed", "tipo:failed"],
+            "progress": ["route:tag", "tipo:failed"],
         }
     tags = clean_vision_tags(str(result.get("tags") or ""))
     return {
@@ -846,12 +842,9 @@ def handle_health_payload() -> dict[str, Any]:
     runtime_env = configure_local_render_runtime()
     tipo_text = tipo_text_health()
     tipo_vision = tipo_vision_health()
-    wd_tagger = wd_tagger_health()
     issues = []
     issues.extend(tipo_text.get("issues", ()))
-    issues.extend(wd_tagger.get("issues", ()))
-    if not wd_tagger.get("ready"):
-        issues.extend(tipo_vision.get("issues", ()))
+    issues.extend(tipo_vision.get("issues", ()))
     return {
         "status": "ok",
         "ready": not issues,
@@ -871,5 +864,4 @@ def handle_health_payload() -> dict[str, Any]:
         "schedulers": scheduler_options(),
         "tipo_text": tipo_text,
         "tipo_vision": tipo_vision,
-        "wd_tagger": wd_tagger,
     }

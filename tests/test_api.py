@@ -46,7 +46,6 @@ def test_handle_chat_payload_routes_tag_task_without_generation(tmp_path, monkey
 
     image_path_obj = image_path
     monkeypatch.setattr("gemmanima.api.run_tipo_vision_tag", fake_tag_image)
-    monkeypatch.setattr("gemmanima.api.run_wd_vision_tag", lambda **kwargs: {"status": "failed", "error": "missing wd"})
 
     result = handle_chat_payload(
         {
@@ -84,7 +83,6 @@ def test_handle_chat_payload_cleans_tag_output_at_api_boundary(tmp_path, monkeyp
         }
 
     monkeypatch.setattr("gemmanima.api.run_tipo_vision_tag", fake_tag_image)
-    monkeypatch.setattr("gemmanima.api.run_wd_vision_tag", lambda **kwargs: {"status": "failed", "error": "missing wd"})
 
     result = handle_chat_payload(
         {"task": "tag", "message": "tag this", "image_path": str(image_path)},
@@ -97,23 +95,20 @@ def test_handle_chat_payload_cleans_tag_output_at_api_boundary(tmp_path, monkeyp
     assert not any("<start_of_turn>" in tag or "<end_of_turn>" in tag for tag in tags)
 
 
-def test_handle_chat_payload_tag_task_prefers_wd_tagger(tmp_path, monkeypatch) -> None:
+def test_handle_chat_payload_tag_task_uses_gemma_vision_tagger(tmp_path, monkeypatch) -> None:
     image_path = tmp_path / "input.png"
     image_path.write_bytes(b"fake image")
 
-    def fail_if_called(**kwargs):
-        raise AssertionError("Gemma vision fallback should not run when WD succeeds")
-
-    monkeypatch.setattr("gemmanima.api.run_tipo_vision_tag", fail_if_called)
     monkeypatch.setattr(
-        "gemmanima.api.run_wd_vision_tag",
+        "gemmanima.api.run_tipo_vision_tag",
         lambda **kwargs: {
             "status": "completed",
             "tags": "1girl, solo, window, rain",
             "raw": "1girl:0.9, solo:0.8, window:0.7, rain:0.6",
             "seconds": 0.1,
-            "model": "wd.onnx",
-            "tagger": "wd-swinv2-tagger-v3",
+            "model": "vision.gguf",
+            "mmproj": "vision.mmproj",
+            "tagger": "tipo:vision",
         },
     )
 
@@ -124,8 +119,8 @@ def test_handle_chat_payload_tag_task_prefers_wd_tagger(tmp_path, monkeypatch) -
 
     assert result["status"] == "completed"
     assert result["tags"] == "1girl, solo, window, rain"
-    assert result["tagger"] == "wd-swinv2-tagger-v3"
-    assert result["progress"] == ["route:tag", "wd:vision"]
+    assert result["tagger"] == "tipo:vision"
+    assert result["progress"] == ["route:tag", "tipo:vision"]
 
 
 def test_handle_chat_payload_auto_uses_model_intent_for_korean_tagging_request(tmp_path, monkeypatch) -> None:
@@ -133,14 +128,14 @@ def test_handle_chat_payload_auto_uses_model_intent_for_korean_tagging_request(t
     image_path.write_bytes(b"fake image")
     calls = []
 
-    def fake_wd_tag(**kwargs):
+    def fake_tipo_tag(**kwargs):
         assert Path(kwargs["image_path"]) == image_path
         return {
             "status": "completed",
             "tags": "1girl, solo, smile, looking_at_viewer",
             "raw": "1girl:0.9, solo:0.8, smile:0.7, looking_at_viewer:0.6",
             "seconds": 0.1,
-            "tagger": "wd-swinv2-tagger-v3",
+            "tagger": "tipo:vision",
         }
 
     def fake_text_chat(**kwargs):
@@ -159,7 +154,7 @@ def test_handle_chat_payload_auto_uses_model_intent_for_korean_tagging_request(t
             "output_contract": "route_intent_json",
         }
 
-    monkeypatch.setattr("gemmanima.api.run_wd_vision_tag", fake_wd_tag)
+    monkeypatch.setattr("gemmanima.api.run_tipo_vision_tag", fake_tipo_tag)
     monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fake_text_chat)
 
     result = handle_chat_payload(
@@ -200,13 +195,13 @@ def test_handle_chat_payload_auto_uses_model_intent_for_tag_then_generate(tmp_pa
 
     monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fake_text_chat)
     monkeypatch.setattr(
-        "gemmanima.api.run_wd_vision_tag",
+        "gemmanima.api.run_tipo_vision_tag",
         lambda **kwargs: {
             "status": "completed",
             "tags": "1girl, solo, forest, lantern",
             "raw": "",
             "seconds": 0.1,
-            "tagger": "wd-swinv2-tagger-v3",
+            "tagger": "tipo:vision",
         },
     )
 
@@ -256,13 +251,13 @@ def test_handle_chat_payload_auto_uses_model_pre_action_before_generation(tmp_pa
 
     monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fake_text_chat)
     monkeypatch.setattr(
-        "gemmanima.api.run_wd_vision_tag",
+        "gemmanima.api.run_tipo_vision_tag",
         lambda **kwargs: {
             "status": "completed",
             "tags": "1girl, solo, white dress, flower field",
             "raw": "",
             "seconds": 0.1,
-            "tagger": "wd-swinv2-tagger-v3",
+            "tagger": "tipo:vision",
         },
     )
 
@@ -320,13 +315,13 @@ def test_handle_chat_payload_auto_rechecks_attached_image_before_chatting(tmp_pa
 
     monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fake_text_chat)
     monkeypatch.setattr(
-        "gemmanima.api.run_wd_vision_tag",
+        "gemmanima.api.run_tipo_vision_tag",
         lambda **kwargs: {
             "status": "completed",
             "tags": "1girl, solo, smile",
             "raw": "",
             "seconds": 0.1,
-            "tagger": "wd-swinv2-tagger-v3",
+            "tagger": "tipo:vision",
         },
     )
 
@@ -386,13 +381,13 @@ def test_handle_chat_payload_auto_rechecks_attached_image_after_classifier_fallb
 
     monkeypatch.setattr("gemmanima.api.run_tipo_text_chat", fake_text_chat)
     monkeypatch.setattr(
-        "gemmanima.api.run_wd_vision_tag",
+        "gemmanima.api.run_tipo_vision_tag",
         lambda **kwargs: {
             "status": "completed",
             "tags": "1girl, solo, blue eyes",
             "raw": "",
             "seconds": 0.1,
-            "tagger": "wd-swinv2-tagger-v3",
+            "tagger": "tipo:vision",
         },
     )
 
@@ -455,21 +450,17 @@ def test_handle_chat_payload_tags_attached_image_before_generation_when_requeste
     image_path = tmp_path / "input.png"
     image_path.write_bytes(b"fake image")
 
-    def fake_wd_tag(**kwargs):
+    def fake_tipo_tag(**kwargs):
         assert Path(kwargs["image_path"]) == image_path
         return {
             "status": "completed",
             "tags": "1girl, solo, forest, lantern, dynamic pose",
             "raw": "1girl:0.9, solo:0.8, forest:0.7, lantern:0.6, dynamic pose:0.6",
             "seconds": 0.1,
-            "tagger": "wd-swinv2-tagger-v3",
+            "tagger": "tipo:vision",
         }
 
-    def fail_tipo(**kwargs):
-        raise AssertionError("WD tagger should satisfy tag-then-generate without Tipo fallback")
-
-    monkeypatch.setattr("gemmanima.api.run_wd_vision_tag", fake_wd_tag)
-    monkeypatch.setattr("gemmanima.api.run_tipo_vision_tag", fail_tipo)
+    monkeypatch.setattr("gemmanima.api.run_tipo_vision_tag", fake_tipo_tag)
 
     result = handle_chat_payload(
         {
@@ -485,7 +476,7 @@ def test_handle_chat_payload_tags_attached_image_before_generation_when_requeste
     assert result["status"] == "completed"
     assert result["tagging"]["tags"] == "1girl, solo, forest, lantern, dynamic pose"
     assert "route:tag_then_generate" in result["progress"]
-    assert "wd:vision" in result["progress"]
+    assert "tipo:vision" in result["progress"]
     assert result["plan"]["reference_image_path"] == str(image_path)
     assert "forest" in result["plan"]["prompt"]
     assert "lantern" in result["plan"]["prompt"]
@@ -1352,7 +1343,7 @@ def test_handle_health_payload_reports_models() -> None:
     assert "in_process" in result["renderers"]
 
 
-def test_handle_health_payload_uses_wd_tagger_as_blocking_vision_gate(monkeypatch) -> None:
+def test_handle_health_payload_uses_tipo_vision_as_blocking_vision_gate(monkeypatch) -> None:
     monkeypatch.setattr("gemmanima.api.tipo_text_health", lambda: {"ready": True, "issues": []})
     monkeypatch.setattr(
         "gemmanima.api.tipo_vision_health",
@@ -1361,18 +1352,11 @@ def test_handle_health_payload_uses_wd_tagger_as_blocking_vision_gate(monkeypatc
             "issues": [{"code": "missing_tipo_vision_cli", "scope": "tipo_vision"}],
         },
     )
-    monkeypatch.setattr(
-        "gemmanima.api.wd_tagger_health",
-        lambda: {
-            "ready": True,
-            "issues": [],
-            "tagger": "wd-swinv2-tagger-v3",
-        },
-    )
 
     result = handle_health_payload()
 
-    assert result["ready"] is True
-    assert result["preflight"]["blocking"] is False
-    assert result["preflight"]["issues"] == []
-    assert result["wd_tagger"]["tagger"] == "wd-swinv2-tagger-v3"
+    assert result["ready"] is False
+    assert result["preflight"]["blocking"] is True
+    assert result["preflight"]["issues"] == [{"code": "missing_tipo_vision_cli", "scope": "tipo_vision"}]
+    assert result["tipo_vision"]["ready"] is False
+    assert "wd_tagger" not in result

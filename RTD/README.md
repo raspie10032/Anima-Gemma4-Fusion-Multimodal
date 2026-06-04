@@ -62,17 +62,15 @@ artifacts.
 Anima text encoder weights are not part of the required standalone runtime. The
 in-process renderer keeps only tokenizer-format metadata for Anima conditioning.
 
-### Vision Tagger
+### Gemma Vision Tagging
 
-- WD SwinV2 ONNX model:
-  `%LOCALAPPDATA%\GemmAnima\models\vision_tagger\wd-swinv2-tagger-v3\model.onnx`
-- WD tag vocabulary:
-  `%LOCALAPPDATA%\GemmAnima\models\vision_tagger\wd-swinv2-tagger-v3\selected_tags.csv`
+- Vision LoRA:
+  `%LOCALAPPDATA%\GemmAnima\models\gemma_core\vision-tagger-adapter-model-f16.gguf`
+- Vision projector:
+  `%LOCALAPPDATA%\GemmAnima\models\gemma_core\gemma4-tipo-vision.mmproj-f16.gguf`
 
-The default `tag-image` route uses the local WD SwinV2 Danbooru tagger because
-live generated-image evaluation showed stronger scene, object, and pose tag
-correlation than the prototype Gemma vision LoRA. The Gemma vision LoRA/mmproj
-path remains available as a fallback and for future experiments.
+The default `tag-image` route uses the Gemma vision adapter and projector. No
+separate ONNX tagger is part of the required standalone runtime.
 
 ### HiddenStage Bridge
 

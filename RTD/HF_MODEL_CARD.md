@@ -108,20 +108,11 @@ The preferred runtime shape is an upstream base GGUF loaded with GemmAnima
 task-specific LoRA adapters through llama.cpp `--lora`. Older fully merged GGUFs
 are not the preferred packaging shape.
 
-### 1.5. Vision Tagger
+### 1.5. Gemma Vision Tagging
 
-The default app `tag-image` route uses a local ONNX Danbooru tagger for stronger
-image-tag correlation on generated anime images. The Gemma vision LoRA remains
-available as a fallback and experimental path.
-
-External requirement:
-
-| File | How to obtain |
-| --- | --- |
-| `vision_tagger/wd-swinv2-tagger-v3/model.onnx` | Download from `SmilingWolf/wd-swinv2-tagger-v3`. |
-| `vision_tagger/wd-swinv2-tagger-v3/selected_tags.csv` | Download from `SmilingWolf/wd-swinv2-tagger-v3`. |
-
-The upstream Hugging Face model page reports `apache-2.0`.
+The default app `tag-image` route uses the Gemma vision LoRA and vision mmproj
+listed above. No separate ONNX tagger is part of the required standalone
+runtime.
 
 ### 2. Anima Image Core
 
@@ -200,7 +191,6 @@ Checksums and byte sizes for every uploaded file are recorded in
 | Directory | Files |
 | --- | --- |
 | `gemma_core/` | Text LoRA, prototype Gemma vision/tagger LoRA, vision mmproj |
-| `vision_tagger/` | WD SwinV2 ONNX tagger and tag vocabulary downloaded from the original model page |
 | `hiddenstage_bridge/` | Planner adapter, planner vision embedding, legacy bridge, and three prototype bridge profiles |
 | repository root | Hugging Face model card, license notices, model source metadata, adapter manifest, version marker |
 
@@ -212,7 +202,6 @@ because original base weights are expected to come from their original pages:
 | Part | Approximate upload size |
 | --- | ---: |
 | Gemma Core adapters/projector | ~1.06 GB |
-| Vision Tagger external ONNX | not uploaded here |
 | HiddenStage Bridge | ~0.40 GB |
 | Anima Image Core base weights | not uploaded here |
 | Total uploaded here | ~1.46 GB |
@@ -306,10 +295,6 @@ Still required before promotion:
 |   |-- text-adapter-model-f16.gguf
 |   |-- vision-tagger-adapter-model-f16.gguf
 |   `-- gemma4-tipo-vision.mmproj-f16.gguf
-|-- vision_tagger/
-|   `-- wd-swinv2-tagger-v3/
-|       |-- model.onnx
-|       `-- selected_tags.csv
 `-- hiddenstage_bridge/
     |-- hiddenstage-planner-adapter.safetensors
     |-- hiddenstage-planner-embed-vision.pt
